@@ -77,9 +77,26 @@ losing claims stay queryable beside the winner.
 | `tests/` | Unit, integration, and the chaos deck |
 | `var/`, `reports/` | Runtime output, gitignored |
 
+## What it finds
+
+On the deliberately messy sample, at the pinned date: **14 critical and 15 warning
+findings**, each with the cell it came from, a suggested action and an owner. On the
+clean sample: **nothing above informational** — which is the control that makes the
+first number mean something.
+
+| | |
+|---|---|
+| Rules implemented | 81 of 82 (every P0) |
+| Chaos mutations | 62, all passing |
+| P0 rules exercised by a mutation | 58 of 58 |
+| Identity precision on a 60-person benchmark | 1.000 (target 0.98) |
+| Tests | 709 plus the chaos deck |
+
 ## Documents
 
+- [`docs/DEMO.md`](docs/DEMO.md) — a five-minute script
+- [`docs/RULES.md`](docs/RULES.md) — every rule, generated from the registry
+- [`DECISIONS.md`](DECISIONS.md) — the design decisions and why
 - [`SPEC.md`](SPEC.md) — the brief this was built against
 - [`PLAN.md`](PLAN.md) — phases, risks, and the decisions taken up front
-- [`PROGRESS.md`](PROGRESS.md) — what is built, what is next
-- [`DECISIONS.md`](DECISIONS.md) — the design decisions and why
+- [`PROGRESS.md`](PROGRESS.md) — what is built, what was found along the way

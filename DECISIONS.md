@@ -293,3 +293,35 @@ are judged: a day nobody sent us a rota for is not a day with no nurse on it.
 Evaluators register against the codes they can raise, so the list of rules still
 missing is computed rather than maintained. Only rules raised inline while reading a
 file carry a manual marker, because they have nowhere to register.
+
+## The graph is a view of the config
+
+The pipeline is declared in `pipeline.yaml` with typed ports, validated before any
+data moves: an edge between steps that cannot exchange anything, a step with an
+unknown type, or a cycle is refused at load with a message naming the problem. It
+caught the first draft of our own graph. The canvas draws that file; the UI edits
+parameters only, because structural change is a code change rather than a form field.
+
+## Parameter edits never touch the pack
+
+Edits are validated against a declared type and range, then written to an overrides
+file. The shipped default stays visible beside the current value, and deleting one
+file undoes every change. A threshold a judge disputes can be changed and the run
+repeated in under a minute.
+
+## Flags that share an identity are merged
+
+A flag id is content-based so the same problem keeps its identity between runs, which
+is what makes a dismissal stick. The cost is that two code paths can reach the same
+identity within one run. That is the same finding said twice, not two findings, so
+they are merged with their counts added.
+
+## What we would do next
+
+- `VOLUME_DROP` is the one rule still unimplemented: it needs run-to-run history,
+  which exists in the schema but has no comparison step yet.
+- OCR for scanned rotas is a documented optional install; without it a scanned page
+  blocks itself and says so.
+- The trucking pack has its manifest and its place in the pipeline, but not its
+  fixtures. The engine work it would need is already done — every node downstream of
+  ingestion is keyed on source *roles* rather than on healthcare vocabulary.
