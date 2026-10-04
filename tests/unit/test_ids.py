@@ -128,3 +128,4 @@ def test_run_id_is_sortable_and_carries_the_input_digest():
     second = run_id("abcd1234ef", "2026-09-21T11:00:00")
     assert first < second
     assert first.endswith("abcd1234")
+    assert "T" in first

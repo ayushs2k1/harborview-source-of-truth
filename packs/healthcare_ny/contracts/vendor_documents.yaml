@@ -1,0 +1,37 @@
+# Optional. Vendor paperwork uses the same credential model, with the organisation
+# as the holder rather than a person - which is the whole point of modelling
+# credentials as their own entity.
+
+source: vendor_documents
+role: vendor_documents
+grain: one row per vendor document
+description: Supplier insurance, permits, and licences. Feeds the same expiry radar.
+
+requires_any:
+  - [vendor, expires_on]
+
+columns:
+  - name: vendor
+    synonyms: [supplier, company, vendor name, contractor, counterparty]
+    type: string
+    required: true
+
+  - name: doc_type
+    synonyms: [document type, type, document, paperwork, certificate type]
+    type: string
+    required: true
+
+  - name: doc_number
+    synonyms: [document number, number, reference, policy number, permit number]
+    type: string
+    required: false
+
+  - name: expires_on
+    synonyms: [expiration, expires, expiry, expiry date, valid until, renewal date]
+    type: date
+    required: true
+
+  - name: verified_on
+    synonyms: [verified, verification date, last checked, reviewed on]
+    type: date
+    required: false

@@ -1,0 +1,55 @@
+# The credential verification service. Authoritative for anything about a credential.
+
+source: licenses
+role: credentials
+grain: one row per license or certification
+description: Verified credentials. Wins over HR's copy on number, type, and expiry.
+
+requires_any:
+  - [license_number]
+
+columns:
+  - name: license_number
+    synonyms: [license no, licence number, credential number, cert number, certificate number,
+               registration number, license id, number]
+    type: license_number
+    required: true
+
+  - name: name_on_license
+    synonyms: [name, holder, licensee, name on credential, credential holder, holder name,
+               registrant]
+    type: person_name
+    required: true
+    description: May differ from HR after a name change, which is why linking is by number.
+
+  - name: license_type
+    synonyms: [type, credential type, license class, discipline, profession, cert type]
+    type: code
+    crosswalk: credential_types
+    required: true
+
+  - name: expiration_date
+    synonyms: [expiration, expires, expiry, expiry date, valid until, good through,
+               license expiration]
+    type: date
+    required: true
+
+  - name: last_verified
+    synonyms: [verified, verification date, verified on, last checked, as of]
+    type: date
+    required: false
+
+  - name: issue_date
+    synonyms: [issued, issue, effective date, original issue, first issued]
+    type: date
+    required: false
+
+  - name: status
+    synonyms: [license status, standing, credential status]
+    type: string
+    required: false
+
+  - name: state
+    synonyms: [issuing state, jurisdiction, state of issue]
+    type: string
+    required: false

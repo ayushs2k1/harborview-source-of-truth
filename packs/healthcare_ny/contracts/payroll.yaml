@@ -1,0 +1,65 @@
+# Payroll: what was actually paid. No employee id, so every row links by name.
+
+source: payroll
+role: payroll
+grain: one row per employee per pay period
+description: Paid hours by person, period, job code, and site. Authoritative for money.
+
+requires_any:
+  - [employee_name]
+
+columns:
+  - name: payroll_id
+    synonyms: [pay id, check id, record id, "payroll #", payroll ref, voucher, batch id]
+    type: string
+    required: false
+
+  - name: employee_name
+    synonyms: [name, employee, emp name, staff name, worker, payee]
+    type: person_name
+    required: true
+    description: Usually "LAST, FIRST". Contains the delimiter, so it is the row most
+      likely to arrive unquoted.
+
+  - name: job_code
+    synonyms: [job, position, position code, role, title code, pay code, job class]
+    type: code
+    crosswalk: roles
+    required: true
+
+  - name: facility_code
+    synonyms: [facility, site, location, dept, department, cost center, cost centre,
+               home, building]
+    type: code
+    crosswalk: facilities
+    required: true
+
+  - name: period_start
+    synonyms: [start, pay period start, week start, from, period from, begin date]
+    type: date
+    required: true
+
+  - name: period_end
+    synonyms: [end, pay period end, week end, to, period to, thru, through]
+    type: date
+    required: true
+
+  - name: hours_paid
+    synonyms: [hours, paid hours, total hours, hrs, hours worked paid, reg hours]
+    type: hours
+    required: true
+
+  - name: hours_worked
+    synonyms: [worked hours, productive hours, actual hours]
+    type: hours
+    required: false
+
+  - name: pto_hours
+    synonyms: [pto, paid time off, leave hours, vacation hours, sick hours, benefit hours]
+    type: hours
+    required: false
+
+  - name: pay_type
+    synonyms: [type, earning code, earnings type, pay category]
+    type: string
+    required: false

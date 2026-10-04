@@ -118,6 +118,12 @@ def run_id(input_digest: str, started_at_iso: str) -> str:
     Carries the timestamp so runs sort chronologically, plus a slice of the input digest
     so two runs over the same inputs are visibly related. Never used as a hash input
     anywhere else: derived content must not depend on which run produced it.
+
+    Resolved to the millisecond rather than the second. Re-running the same files is
+    the normal case - it is what the rerun button does - and at one-second resolution
+    the second run would collide with the first.
     """
-    stamp = started_at_iso.replace("-", "").replace(":", "").split(".")[0]
-    return f"R-{stamp}-{input_digest[:8]}"
+    stamp, _, fraction = started_at_iso.partition(".")
+    stamp = stamp.replace("-", "").replace(":", "")
+    millis = (fraction or "000000")[:3].ljust(3, "0")
+    return f"R-{stamp}{millis}-{input_digest[:8]}"

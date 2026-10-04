@@ -4,6 +4,57 @@ Updated after each build phase. Format: done / next / risks.
 
 ---
 
+## Phase 2 — Ingestion ✅
+
+**Done**
+
+- **Rule infrastructure.** All **81 rule codes** from spec section 13 declared as data in `sot/rules/catalog.py`, with severity, owner, priority, message template, and suggested action. 11 have evaluators so far; the rest are declared deliberately, so `docs/RULES.md` is complete and "which P0 rules are still missing" is a query rather than a memory exercise. Severity is a function where the spec says it varies.
+- **Flag builder** with roll-up: informational findings aggregate per column, per file, or per run, keeping a count and up to five evidence pointers.
+- **Pack contracts and crosswalks** for all five tabular healthcare sources, plus facilities, roles, and credential types. Synonyms are generous on purpose — they are the main defence against a file we have never seen.
+- **Robust reader**: encoding ladder, content-based delimiter sniffing, header-position search, non-data row classification, field-count repair, null tokens, `.xlsx`.
+- **Detection**: format from leading bytes, source from weighted header-signature similarity, with ties and low scores refused rather than guessed.
+- **Header mapping**: learned decision → exact synonym → Jaro-Winkler, with ambiguity and missing-required reporting.
+- **Immutable landing** by content hash, run context with per-step isolation, event log, CLI `ingest`, and report writer (`flags.csv`, `flags.json`, `summary.md`).
+- **245 tests passing** (132 new), ruff clean.
+
+**Verified, not assumed**
+
+- `make verify-clean` passes: the clean set ingests with **nothing above INFO**, 48 records, zero quarantined.
+- `make demo` on the messy set raises exactly the planted reader problem and nothing spurious.
+- Ingesting the same files in a shuffled order produces byte-identical records and flags.
+- Fourteen file-level chaos mutations pass as ordinary tests (M01–M09, M46, M47, M58, M69): renamed headers, reordered columns, an extra column, a dropped required column, an unquoted name, BOM + CRLF, Latin-1 accents, tab delimiters, junk rows, misleading filenames, a duplicate upload, an unrelated file, and a truncated row.
+- An unrelated file blocks only itself; the four real sources still load.
+
+**Six bugs found and fixed while building**
+
+Four of these would have produced *plausible but wrong* output, which is the failure mode that matters here — nobody notices.
+
+- Character-set detection reported **UTF-16 for a short Windows-1252 sample**, turning a surname into Chinese characters. Wide encodings now require a byte-order mark.
+- Detection also reported **cp1250 for a Western European file**, which silently turns ñ into ń. Single-byte codepages differ only in which accented letters the high bytes mean, so a short sample cannot distinguish them; the assumed codepage is now explicit and configurable, and the fallback is always flagged.
+- **Row repair accepted merges at any column**, so a row of three-letter codes rejoined as happily as a name and was silently corrupted. Repair is now restricted to columns the contract says hold a name.
+- A **stray byte-order mark** survived a double-encoded file and renamed the first column, so its heading matched nothing.
+- **`run_id` collided within the same second**, so re-running the same files — which is exactly what the rerun button does — hit a primary key violation. Now millisecond-resolved with a suffix fallback.
+- **Duplicate detection depended on file order**: whichever copy arrived first was the one kept, so the flag named a different file run to run. Inputs are now canonically sorted before anything is read.
+
+**Four deliberate deviations from the spec**, each recorded in `DECISIONS.md`
+
+- Signature scoring weights required columns three times optional ones, rather than a flat share of columns matched.
+- Stored header decisions are applied *before* the automatic strategies, not after.
+- `FILE_DUPLICATE` fires for a repeat within one upload, not for re-ingesting the same file in a later run.
+- Row numbers are physical 1-based lines, which matches a spreadsheet exactly and stays useful when a file has a preamble.
+
+**Next — phase 3: normalizers and the PDF adapter**
+
+Names, nicknames, dates, phones, credential numbers, hours, codes; then the schedule adapter with the shift grammar, footnote parsing, year inference, midnight split, and bounding-box capture.
+
+**Risks**
+
+- *New:* 50 P0 rules still have no evaluator. That is the plan — phases 3 and 5 are where they land — but it is the bulk of the remaining P0 work and the coverage report now tracks it.
+- *Carried (R6):* "clean raises nothing above INFO" now holds for ingestion. It cannot be confirmed for the domain rules until phase 5.
+- *Carried (R1):* the schedule PDF is next, and remains the highest-variance risk against the judges' real file.
+
+---
+
 ## Phase 1 — Fixtures first ✅
 
 **Done**

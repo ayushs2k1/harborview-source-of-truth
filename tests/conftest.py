@@ -46,3 +46,35 @@ def db(tmp_path: Path) -> Database:
 def repo_root() -> Path:
     """Path to the repository root."""
     return REPO_ROOT
+
+
+@pytest.fixture()
+def pack():
+    """The healthcare pack, loaded from the repository."""
+    from sot.ingest.contracts import load_pack
+
+    return load_pack("healthcare_ny", packs_dir=str(REPO_ROOT / "packs"))
+
+
+@pytest.fixture()
+def make_files(tmp_path: Path):
+    """Write a dict of ``name -> text or bytes`` into a fresh directory."""
+
+    def build(files: dict[str, str | bytes], folder: str = "input") -> Path:
+        target = tmp_path / folder
+        target.mkdir(parents=True, exist_ok=True)
+        for name, content in files.items():
+            path = target / name
+            if isinstance(content, bytes):
+                path.write_bytes(content)
+            else:
+                path.write_text(content, encoding="utf-8")
+        return target
+
+    return build
+
+
+@pytest.fixture()
+def sample_dir() -> Path:
+    """The committed healthcare fixtures."""
+    return REPO_ROOT / "data" / "samples" / "healthcare"

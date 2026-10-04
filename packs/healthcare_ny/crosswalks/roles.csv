@@ -1,0 +1,9 @@
+code,pbj_code,requires_credential,description,aliases
+RN_DON,5,true,RN director of nursing,Director of Nursing|DON|RN Director of Nursing|Nursing Director|Director of Nursing Services|DNS
+RN_ADMIN,6,true,RN with administrative duties,RN with Administrative Duties|RN Admin|Nurse Manager|Unit Manager RN|RN Supervisor|ADON
+RN,7,true,Registered nurse,Registered Nurse|RN|R.N.|Staff RN|Registered Professional Nurse|RN Staff Nurse
+LPN_ADMIN,8,true,LPN with administrative duties,LPN with Administrative Duties|LPN Admin|LPN Supervisor
+LPN,9,true,Licensed practical nurse,Licensed Practical Nurse|LPN|L.P.N.|LVN|Licensed Vocational Nurse
+CNA,10,true,Certified nursing assistant,Certified Nursing Assistant|Certified Nurse Aide|CNA|C.N.A.|Nurse Aide|Nursing Assistant|STNA|Certified Nursing Asst
+AIDE_TRAINEE,11,false,Aide in training,Aide in Training|Nurse Aide in Training|NATP|Nurse Aide Trainee|Aide Trainee
+MED_AIDE,12,true,Medication aide,Medication Aide|Med Aide|CMA|Certified Medication Aide|Medication Technician

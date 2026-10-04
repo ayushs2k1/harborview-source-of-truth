@@ -1,0 +1,27 @@
+# Optional. Hours per resident per day is a ratio, so without this the HPRD checks
+# return unknown rather than guessing.
+
+source: census
+role: census
+grain: one row per facility per day
+description: Resident count by day. Enables hours-per-resident-day indicators.
+
+requires_any:
+  - [facility, date, residents]
+
+columns:
+  - name: facility
+    synonyms: [site, location, facility code, building, home]
+    type: code
+    crosswalk: facilities
+    required: true
+
+  - name: date
+    synonyms: [census date, day, as of date, reporting date]
+    type: date
+    required: true
+
+  - name: residents
+    synonyms: [census, resident count, occupancy, patients, residents on census, headcount]
+    type: integer
+    required: true

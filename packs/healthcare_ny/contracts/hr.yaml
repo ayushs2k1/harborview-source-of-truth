@@ -1,0 +1,96 @@
+# The HR system of record: who is employed, where, and in what job.
+#
+# Synonyms are the main defence against a file we have never seen. The judges' export
+# will not use our column names, so every plausible spelling earns its place here -
+# adding one is free, and a missed one costs a required-column blocker.
+
+source: hr
+role: roster
+grain: one row per employee record
+description: Employment records. Authoritative for legal name, hire date, and contact details.
+
+# At least one of these groups must be present, or we cannot identify anybody.
+requires_any:
+  - [last_name]
+  - [employee_name]
+
+columns:
+  - name: employee_id
+    synonyms: [emp id, employee number, emp no, employee no, staff id, person id, worker id,
+               employee code, badge, badge number, payroll number, id]
+    type: string
+    required: false
+    description: Employer-issued identifier. When present it anchors the person id.
+
+  - name: employee_name
+    synonyms: [name, full name, staff name, worker name, employee]
+    type: person_name
+    required: false
+    description: Single-column name, for rosters that do not split given and family names.
+
+  - name: first_name
+    synonyms: [given name, forename, first, fname, given]
+    type: string
+    required: false
+
+  - name: middle_name
+    synonyms: [middle, middle initial, mi, second name]
+    type: string
+    required: false
+
+  - name: last_name
+    synonyms: [surname, family name, last, lname, family]
+    type: string
+    required: true
+
+  - name: job_title
+    synonyms: [title, position, role, job, job description, position title, classification]
+    type: code
+    crosswalk: roles
+    required: true
+    description: Spelled-out title. Mapped to a canonical role through the roles crosswalk.
+
+  - name: facility
+    synonyms: [site, location, home facility, building, campus, unit, cost center,
+               cost centre, department, dept]
+    type: code
+    crosswalk: facilities
+    required: true
+
+  - name: phone
+    synonyms: [telephone, phone number, mobile, cell, contact number, tel]
+    type: phone
+    required: false
+
+  - name: email
+    synonyms: [email address, e-mail, work email]
+    type: string
+    required: false
+
+  - name: license_number
+    synonyms: [license no, licence number, licence no, credential number, cert number,
+               certification number, license id, registration number]
+    type: license_number
+    required: false
+    description: HR's copy of the credential number. The verification service wins conflicts.
+
+  - name: license_expiration
+    synonyms: [license expiry, licence expiration, cert expiration, credential expiration,
+               expiration, expires, expiry date, license exp]
+    type: date
+    required: false
+
+  - name: hire_date
+    synonyms: [date of hire, start date, hired, employment start, doh]
+    type: date
+    required: false
+
+  - name: termination_date
+    synonyms: [term date, end date, separation date, last day, terminated]
+    type: date
+    required: false
+
+  - name: status
+    synonyms: [employment status, active, employee status, state]
+    type: string
+    required: false

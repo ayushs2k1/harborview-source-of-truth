@@ -11,6 +11,7 @@ import argparse
 import json
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from sot.config import ENGINE_VERSION, settings
 
@@ -38,6 +39,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="force a file's source type, e.g. --type payroll.csv=payroll",
     )
     ingest.add_argument("--out", default=None, help="report directory (default: reports/<run_id>)")
+    ingest.add_argument(
+        "--max-severity",
+        dest="max_severity",
+        choices=["BLOCKER", "CRITICAL", "WARNING", "INFO"],
+        default=None,
+        help="exit non-zero if anything worse than this is found (for gates, not daily use)",
+    )
 
     sub.add_parser("health", help="print engine and database status")
     return parser
@@ -50,13 +58,61 @@ def _cmd_health() -> int:
     return 0
 
 
+def _parse_overrides(raw: list[str]) -> dict[str, str]:
+    """Turn ``--type payroll.csv=payroll`` arguments into a mapping."""
+    overrides: dict[str, str] = {}
+    for item in raw:
+        name, _, source = item.partition("=")
+        if not name or not source:
+            raise SystemExit(f"--type expects FILE=SOURCE, got {item!r}")
+        overrides[name.strip()] = source.strip()
+    return overrides
+
+
 def _cmd_ingest(args: argparse.Namespace) -> int:
-    # Wired in phase 2, once detection and the robust reader exist.
-    raise SystemExit(
-        "ingest is not wired up yet (arrives in phase 2: ingestion).\n"
-        f"Parsed fine though: path={args.path} as_of={args.as_of or 'today'} "
-        f"pack={args.pack or settings().default_pack} overrides={args.type_overrides}"
+    """Ingest and write a report.
+
+    Returns 0 even when the data is terrible: bad data is the product, not a failure.
+    ``--max-severity`` is the exception, and exists for gates like ``make verify-clean``
+    rather than for everyday use.
+    """
+    from datetime import date
+
+    from sot.ingest.service import ingest_paths
+    from sot.rules.model import Severity
+    from sot.views.exports import write_run_reports
+
+    as_of = date.fromisoformat(args.as_of) if args.as_of else date.today()
+    result = ingest_paths(
+        args.path,
+        pack_id=args.pack,
+        as_of=as_of,
+        type_overrides=_parse_overrides(args.type_overrides),
     )
+
+    out_dir = Path(args.out) if args.out else settings().reports_dir / result.run_id
+    written = write_run_reports(result, out_dir)
+
+    counts = result.context.flags.counts_by_severity() if result.context else {}
+    summary = "  ".join(f"{name} {count}" for name, count in counts.items() if count)
+    print(f"run {result.run_id}  status {result.status}")
+    print(
+        f"  files {len(result.files)}  records {result.record_count:,}  "
+        f"quarantined {result.quarantined_count:,}"
+    )
+    print(f"  flags: {summary or 'none'}")
+    print(f"  report: {written[-1]}")
+
+    if args.max_severity:
+        limit = Severity(args.max_severity.upper())
+        worse = [flag for flag in result.flags if flag.severity.rank < limit.rank]
+        if worse:
+            print(f"\n{len(worse)} finding(s) above {limit.value}:")
+            for flag in worse[:20]:
+                print(f"  {flag.severity.value:<8} {flag.rule_code:<30} {flag.message}")
+            return 1
+        print(f"  nothing above {limit.value}")
+    return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:

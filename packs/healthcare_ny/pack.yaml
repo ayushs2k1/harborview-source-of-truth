@@ -9,6 +9,27 @@ name: Healthcare (New York)
 version: 0.1.0
 description: Skilled nursing facilities. PBJ staffing, credential expiry, referral readiness.
 
+# --- Ingestion -------------------------------------------------------------
+
+detection:
+  # A file is classified by how much of a contract's column signature it matches.
+  # Required columns are weighted more heavily than optional ones, so a minimal but
+  # correct export still scores high and a contract with many optional columns does
+  # not dilute its own signature.
+  min_score: 0.5
+  required_weight: 3
+  optional_weight: 1
+  # Two contracts within this of each other is a tie, not a winner.
+  min_margin: 0.15
+  # Header text is matched by exact synonym first, then by similarity at this ratio.
+  header_similarity: 0.90
+  # How far into a file to look for the header row, for files with a preamble.
+  max_preamble_rows: 20
+
+# Titles that do not determine a role on their own. Resolved through the person's
+# linked credential instead of guessed at.
+ambiguous_role_titles: [nurse, charge nurse, floor nurse, staff nurse, nursing staff, caregiver]
+
 # --- Engine defaults -------------------------------------------------------
 
 as_of: today                 # overridden per run; fixtures pin a date so results never drift
