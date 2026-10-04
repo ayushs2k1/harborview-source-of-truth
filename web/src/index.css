@@ -1,0 +1,40 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens.
+ *
+ * Severity colors come straight from spec section 20. They are always paired with a
+ * label or icon in the UI, never used as the only signal - a projector at the back of
+ * a room flattens amber into gray, and some judges will not distinguish red from green.
+ */
+@theme {
+  --color-sev-blocker: oklch(38% 0.16 300);
+  --color-sev-blocker-soft: oklch(95% 0.03 300);
+  --color-sev-critical: oklch(52% 0.21 25);
+  --color-sev-critical-soft: oklch(95% 0.04 25);
+  --color-sev-warning: oklch(68% 0.15 75);
+  --color-sev-warning-soft: oklch(96% 0.05 85);
+  --color-sev-info: oklch(55% 0.01 260);
+  --color-sev-info-soft: oklch(96% 0.002 260);
+  --color-ok: oklch(55% 0.13 155);
+  --color-ok-soft: oklch(95% 0.04 155);
+  --color-unknown: oklch(60% 0.02 260);
+
+  --color-ink: oklch(22% 0.01 260);
+  --color-ink-soft: oklch(45% 0.01 260);
+  --color-line: oklch(90% 0.004 260);
+  --color-surface: oklch(99.5% 0 0);
+  --color-surface-sunk: oklch(97.5% 0.002 260);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-surface-sunk);
+  color: var(--color-ink);
+  font-feature-settings: 'tnum' 1; /* aligned digits: these screens are mostly numbers */
+}

@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sot"
+version = "0.1.0"
+description = "Harborview Source of Truth - every number has receipts."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.142.2",
+    "uvicorn[standard]==0.54.0",
+    "duckdb==1.5.6",
+    "pydantic==2.13.5",
+    "pyyaml==6.0.3",
+    "rapidfuzz==3.14.6",
+    "jellyfish==1.2.1",
+    "pdfplumber==0.11.10",
+    "pypdfium2==5.14.0",
+    "reportlab==5.0.1",
+    "charset-normalizer==3.5.2",
+    "openpyxl==3.1.5",
+    "python-multipart==0.0.32",
+    "sse-starlette==3.5.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1", "httpx==0.28.1", "ruff==0.16.10"]
+ocr = ["pytesseract", "Pillow"]
+assist = ["anthropic"]
+
+[project.scripts]
+sot = "sot.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["sot*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "chaos: mutation tests from the chaos deck",
+    "slow: excluded from the fast inner loop",
+]
+filterwarnings = [
+    "error::DeprecationWarning:sot.*",
+    # starlette nudging towards httpx2; not ours to fix, and it hides real warnings.
+    "ignore:Using `httpx` with `starlette.testclient`:UserWarning",
+    "ignore::DeprecationWarning:starlette.*",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["web", "var", "reports"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+ignore = [
+    "E501",    # line length is handled by the formatter
+    "B008",    # FastAPI's Depends() in defaults is the documented idiom
+    "SIM108",  # ternaries are not always clearer
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]

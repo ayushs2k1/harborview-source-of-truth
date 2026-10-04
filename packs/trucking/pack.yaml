@@ -1,0 +1,28 @@
+# Trucking domain pack.
+#
+# Exists to prove the engine is not a healthcare application with configuration bolted
+# on: switching to it changes the source nodes and the rule node, and nothing else
+# (spec section 22). Thresholds here are illustrative, not regulatory research.
+
+id: trucking
+name: Trucking
+version: 0.1.0
+description: Driver rosters, dispatch, and credential expiry. Reuse proof for the engine.
+
+as_of: today
+week_start: monday
+date_order_default: MDY
+hours_tolerance: 0.25
+payroll_attribution: shift_start
+
+expiry_windows_days: [90, 60, 30, 14]
+verification_max_age_days: 60
+
+fatigue:
+  long_day_hours: 14         # illustrative; real hours-of-service rules are stricter
+  min_rest_hours: 10
+  max_consecutive_days: 7
+
+required_credential:
+  DRV: [CDL, MED_CERT]       # a dispatched driver needs both
+  HLP: []

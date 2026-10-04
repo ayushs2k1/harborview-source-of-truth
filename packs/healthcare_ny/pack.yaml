@@ -1,0 +1,86 @@
+# Healthcare domain pack, New York.
+#
+# Every threshold below is a factual claim about regulation, so each one carries its
+# source. They are all editable in Settings: if a judge disputes a number, we change it
+# here and re-run rather than arguing about what is compiled into the engine.
+
+id: healthcare_ny
+name: Healthcare (New York)
+version: 0.1.0
+description: Skilled nursing facilities. PBJ staffing, credential expiry, referral readiness.
+
+# --- Engine defaults -------------------------------------------------------
+
+as_of: today                 # overridden per run; fixtures pin a date so results never drift
+week_start: monday
+date_order_default: MDY      # used only when a column has no unambiguous majority
+hours_tolerance: 0.25        # hours; a week inside this is MATCHED
+payroll_attribution: shift_start   # which day an overnight shift's hours belong to
+
+# --- CMS Payroll-Based Journal --------------------------------------------
+# https://viventium.com/skilled-nursing-facilities-and-payroll-based-journals
+# https://theconsumervoice.org/news/detail/all/cms-memo-on-pbj
+pbj:
+  split_at_midnight: true    # PBJ reports by calendar day, so overnight shifts split
+  meal_deduction:
+    # An assumption, not a regulation: PBJ excludes meal time whether paid or not, but
+    # the files do not say when breaks were taken. Surfaced in the UI beside the totals.
+    minutes: 30
+    min_shift_hours: 6
+  include_training: false    # orientation counts as worked for reconciliation, not PBJ
+  daily_cap_hours: 22.5      # the file spec rejects more than this per employee per day
+  traceability_variance_pct: 4.0   # CMS has called a gap above this significant
+
+# --- Federal RN coverage rule (restored December 2025) --------------------
+# https://www.aha.org/news/headline/2025-12-02-cms-repeals-minimum-staffing-requirements-skilled-nursing-long-term-care-facilities
+rn_min_consecutive_hours: 8
+rn_coverage_mode: union      # union of all RN segments, or single_person
+
+# Care Compare has long given a one-star staffing rating at 7+ zero-RN days a quarter.
+zero_rn_days:
+  warn: 4
+  critical: 7
+
+# --- NY minimum staffing (Public Health Law 2895-b) -----------------------
+# https://newyork.public.law/laws/n.y._public_health_law_section_2895-b
+# https://healthweb-back.health.ny.gov/facilities/nursing/minimum_staffing/
+# Hours per resident per day. Only applied when a census is supplied.
+hprd_minimums:
+  total: 3.5
+  licensed: 1.1              # RN + LPN
+  cna: 2.2                   # since 2023, only certified aide hours count
+
+# --- Operational windows ---------------------------------------------------
+
+tours:                       # used by the referral view, not by compliance
+  day: "07:00-15:00"
+  evening: "15:00-23:00"
+  night: "23:00-07:00"
+
+expiry_windows_days: [90, 60, 30, 14]
+verification_max_age_days: 60
+
+fatigue:
+  long_day_hours: 16
+  min_rest_hours: 8
+  max_consecutive_days: 7
+
+# --- NY CNA recertification ------------------------------------------------
+# https://www.leadingageny.org/providers/nursing-homes/doh-releases-cna-re-certification-reminder-dal
+# Every 2 years, due the last day of the month of original certification, requiring at
+# least 7 paid nurse-aide hours in the prior 24 months. Filed by the employer.
+cna_recert:
+  period_months: 24
+  min_paid_hours: 7
+  expiry_on_month_end: true
+
+# --- Role to credential ----------------------------------------------------
+# Which credential types satisfy a role. An LPN or RN working as an aide is allowed
+# (recorded as working below licence level), which is why they appear under CNA.
+required_credential:
+  RN: [RN]
+  RN_DON: [RN]
+  RN_ADMIN: [RN]
+  LPN: [LPN, RN]
+  CNA: [CNA, LPN, RN]
+  MED_AIDE: [MED_AIDE]
