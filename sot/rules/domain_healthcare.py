@@ -12,11 +12,11 @@ supplies the hours; the pack decides what they have to add up to.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
-from datetime import date, datetime, timedelta
-from typing import Any
+from collections.abc import Iterable
+from datetime import date, timedelta
 
 from sot.canon import round_hours, sum_hours
+from sot.match.fourway import day_intervals, longest_run, role_family
 from sot.rules.engine import RuleContext, evaluator
 from sot.rules.model import Finding
 
@@ -45,8 +45,7 @@ def quarter_label(when: date) -> str:
 
 
 def _family(context: RuleContext, name: str) -> set[str]:
-    families = context.setting("role_families", {}) or {}
-    return {str(role).upper() for role in families.get(name, ())}
+    return role_family(context, name)
 
 
 def _rn_roles(context: RuleContext) -> set[str]:
@@ -59,50 +58,6 @@ def _licensed_roles(context: RuleContext) -> set[str]:
 
 def _aide_roles(context: RuleContext) -> set[str]:
     return _family(context, "aide")
-
-
-def _day_intervals(
-    segments: Sequence[Mapping[str, Any]], roles: set[str]
-) -> dict[tuple[str, date], list[tuple[float, float]]]:
-    """Hours-from-midnight intervals per facility-day, for the given roles.
-
-    Computed from the clock rather than from daily totals, because the rule is about
-    an unbroken stretch of cover. Two nurses working four hours each is eight hours of
-    nursing and may still leave the building uncovered.
-    """
-    spans: dict[tuple[str, date], list[tuple[float, float]]] = {}
-    for segment in segments:
-        if str(segment.get("category") or "") not in {"WORK", "TRAINING"}:
-            continue
-        if str(segment.get("role_code") or "").upper() not in roles:
-            continue
-        start, end = segment.get("start_ts"), segment.get("end_ts")
-        facility = str(segment.get("facility_code") or "")
-        if start is None or end is None or not facility:
-            continue
-        cursor = start
-        while cursor < end:
-            day = cursor.date()
-            midnight = datetime.combine(day + timedelta(days=1), datetime.min.time())
-            boundary = min(midnight, end)
-            from_hour = cursor.hour + cursor.minute / 60.0
-            to_hour = (boundary - datetime.combine(day, datetime.min.time())).total_seconds() / 3600
-            spans.setdefault((facility, day), []).append((from_hour, to_hour))
-            cursor = boundary
-    return spans
-
-
-def longest_run(intervals: Sequence[tuple[float, float]]) -> float:
-    """Longest unbroken stretch covered by a union of intervals."""
-    if not intervals:
-        return 0.0
-    merged: list[list[float]] = []
-    for start, end in sorted(intervals):
-        if merged and start <= merged[-1][1]:
-            merged[-1][1] = max(merged[-1][1], end)
-        else:
-            merged.append([start, end])
-    return round_hours(max(end - start for start, end in merged)) or 0.0
 
 
 def _covered_days(context: RuleContext) -> list[tuple[str, date]]:
@@ -144,14 +99,14 @@ def rn_coverage(context: RuleContext) -> Iterable[Finding]:
             person = str(segment.get("person_id") or "")
             if not person:
                 continue
-            for key, values in _day_intervals([segment], rn_roles).items():
+            for key, values in day_intervals([segment], rn_roles).items():
                 spans.setdefault((*key, person), []).extend(values)  # type: ignore[arg-type]
         best: dict[tuple[str, date], float] = {}
         for key, values in spans.items():
             facility_day = (key[0], key[1])
             best[facility_day] = max(best.get(facility_day, 0.0), longest_run(values))
     else:
-        intervals = _day_intervals(context.segments, rn_roles)
+        intervals = day_intervals(context.segments, rn_roles)
         best = {key: longest_run(values) for key, values in intervals.items()}
 
     for facility, day in _covered_days(context):
@@ -181,7 +136,7 @@ def zero_rn_days(context: RuleContext) -> Iterable[Finding]:
     warn = int(thresholds.get("warn", 4) or 4)
     critical = int(thresholds.get("critical", 7) or 7)
     rn_roles = _rn_roles(context)
-    intervals = _day_intervals(context.segments, rn_roles)
+    intervals = day_intervals(context.segments, rn_roles)
 
     counts: dict[tuple[str, str], int] = {}
     for facility, day in _covered_days(context):

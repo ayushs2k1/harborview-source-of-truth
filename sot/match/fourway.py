@@ -532,3 +532,58 @@ def _set_status(week: PersonWeek, tolerance: float) -> None:
 
     week.status = STATUS_HOURS_VARIANCE
     week.direction = DIRECTION_PAID_MORE if delta > 0 else DIRECTION_PAID_LESS
+
+
+# ---------------------------------------------------------------------------
+# Shared segment helpers
+# ---------------------------------------------------------------------------
+
+
+def role_family(pack: Any, name: str) -> set[str]:
+    """Role codes belonging to one of the pack's role families."""
+    families = pack.setting("role_families", {}) or {}
+    return {str(role).upper() for role in families.get(name, ())}
+
+
+def day_intervals(
+    segments: Sequence[Mapping[str, Any]], roles: set[str]
+) -> dict[tuple[str, date], list[tuple[float, float]]]:
+    """Hours-from-midnight intervals per facility-day, for the given roles.
+
+    Computed from the clock rather than from daily totals, because coverage rules are
+    about an unbroken stretch. Two nurses working four hours each is eight hours of
+    nursing and may still leave the building uncovered.
+    """
+    spans: dict[tuple[str, date], list[tuple[float, float]]] = {}
+    for segment in segments:
+        if str(segment.get("category") or "") not in WORKED_CATEGORIES:
+            continue
+        if str(segment.get("role_code") or "").upper() not in roles:
+            continue
+        start, end = segment.get("start_ts"), segment.get("end_ts")
+        facility = str(segment.get("facility_code") or "")
+        if start is None or end is None or not facility:
+            continue
+        cursor = start
+        while cursor < end:
+            day = cursor.date()
+            midnight = datetime.combine(day + timedelta(days=1), datetime.min.time())
+            boundary = min(midnight, end)
+            from_hour = cursor.hour + cursor.minute / 60.0
+            to_hour = (boundary - datetime.combine(day, datetime.min.time())).total_seconds() / 3600
+            spans.setdefault((facility, day), []).append((from_hour, to_hour))
+            cursor = boundary
+    return spans
+
+
+def longest_run(intervals: Sequence[tuple[float, float]]) -> float:
+    """Longest unbroken stretch covered by a union of intervals."""
+    if not intervals:
+        return 0.0
+    merged: list[list[float]] = []
+    for start, end in sorted(intervals):
+        if merged and start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return round_hours(max(end - start for start, end in merged)) or 0.0

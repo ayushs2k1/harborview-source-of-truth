@@ -8,7 +8,17 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from sot.api.routers import health
+from sot.api.routers import (
+    decisions,
+    evidence,
+    exports,
+    flags,
+    health,
+    persons,
+    pipeline,
+    runs,
+    views,
+)
 from sot.config import ENGINE_VERSION, settings
 
 log = logging.getLogger("sot.api")
@@ -34,7 +44,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.include_router(health.router, prefix="/api")
+    for module in (health, runs, flags, persons, views, evidence, exports, decisions, pipeline):
+        app.include_router(module.router, prefix="/api")
 
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception) -> JSONResponse:

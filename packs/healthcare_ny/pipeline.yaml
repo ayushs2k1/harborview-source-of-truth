@@ -1,0 +1,131 @@
+# The pipeline, as the canvas draws it.
+#
+# This describes the graph the engine actually runs. It is a view of the engine, not
+# a program: the executor refuses wiring that does not type-check and refuses cycles,
+# so a mistake here is caught before any data moves rather than halfway through a run.
+#
+# Ports are the contract between steps. A step that produces StdTable can feed one
+# that consumes StdTable and nothing else.
+
+version: 1
+
+nodes:
+  - id: intake
+    type: source
+    label: Intake
+    produces: [RawTable]
+    description: Detect each file from its contents, land it by hash, and read it.
+
+  - id: source_hr
+    type: standardize
+    label: Roster
+    consumes: [RawTable]
+    produces: [StdTable]
+    description: Who is employed, where, and in what job.
+
+  - id: source_payroll
+    type: standardize
+    label: Payroll
+    consumes: [RawTable]
+    produces: [StdTable]
+    description: What was actually paid, by person and pay period.
+
+  - id: source_licenses
+    type: standardize
+    label: Credentials
+    consumes: [RawTable]
+    produces: [StdTable]
+    description: Verified credentials from the issuing service.
+
+  - id: source_schedule
+    type: standardize
+    label: Schedule
+    consumes: [RawTable]
+    produces: [StdTable]
+    description: The printed rota, read into shift segments with their position on the page.
+
+  - id: source_census
+    type: standardize
+    label: Census
+    consumes: [RawTable]
+    produces: [StdTable]
+    optional: true
+    description: Residents by day. Without it, hours per resident is unknown rather than assumed.
+
+  - id: source_vendor_documents
+    type: standardize
+    label: Vendor documents
+    consumes: [RawTable]
+    produces: [StdTable]
+    optional: true
+    description: Supplier paperwork, on the same expiry radar as staff credentials.
+
+  - id: resolve
+    type: resolve
+    label: Identity
+    consumes: [StdTable]
+    produces: [Links]
+    description: Work out who is who across systems that spell names differently.
+
+  - id: ledger
+    type: ledger
+    label: Claims ledger
+    consumes: [StdTable, Links]
+    produces: [Claims, Golden]
+    description: Store every value with its origin, then choose which one to display.
+
+  - id: match
+    type: match
+    label: Four-way match
+    consumes: [Golden, StdTable]
+    produces: [MatchTables]
+    description: Reconcile planned, paid, employed, and permitted.
+
+  - id: staffing
+    type: view
+    label: Staffing hours
+    consumes: [MatchTables]
+    produces: [View]
+    description: Reportable hours by day, split at midnight with meal time excluded.
+
+  - id: views
+    type: view
+    label: Views
+    consumes: [MatchTables, View, StdTable]
+    produces: [View]
+    description: Facility summaries and the expiration radar.
+
+  - id: rules
+    type: rules
+    label: Rules
+    consumes: [Golden, MatchTables, View]
+    produces: [Flags]
+    description: Everything that is wrong, inconsistent, or needs a human.
+
+edges:
+  - [intake, source_hr]
+  - [intake, source_payroll]
+  - [intake, source_licenses]
+  - [intake, source_schedule]
+  - [intake, source_census]
+  - [intake, source_vendor_documents]
+  - [source_hr, resolve]
+  - [source_payroll, resolve]
+  - [source_licenses, resolve]
+  - [source_schedule, resolve]
+  - [source_hr, ledger]
+  - [source_payroll, ledger]
+  - [source_licenses, ledger]
+  - [source_schedule, ledger]
+  - [resolve, ledger]
+  - [ledger, match]
+  - [source_payroll, match]
+  - [match, staffing]
+  - [staffing, views]
+  - [match, views]
+  - [source_census, views]
+  - [source_vendor_documents, views]
+  - [ledger, rules]
+  - [match, rules]
+  - [views, rules]
+  - [staffing, rules]

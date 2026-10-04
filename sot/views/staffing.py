@@ -24,6 +24,8 @@ from sot.match.fourway import (
     STATUS_MATCHED,
     MatchResult,
     PersonWeek,
+    day_intervals,
+    role_family,
 )
 from sot.normalize.shifts import split_at_midnight
 
@@ -233,3 +235,225 @@ def _unallocated(match: MatchResult, display_names: Mapping[str, str]) -> list[U
             )
         )
     return found
+
+
+# ---------------------------------------------------------------------------
+# Summaries
+# ---------------------------------------------------------------------------
+
+#: Federal fiscal quarters. Reported staffing is grouped and filed on these, which
+#: are not calendar quarters - a detail that is easy to get wrong and expensive to.
+_FISCAL_QUARTERS = {
+    "Q1": (10, 12),
+    "Q2": (1, 3),
+    "Q3": (4, 6),
+    "Q4": (7, 9),
+}
+_MONTH_TO_QUARTER = {
+    month: name
+    for name, (start, end) in _FISCAL_QUARTERS.items()
+    for month in ([10, 11, 12] if name == "Q1" else list(range(start, end + 1)))
+}
+
+#: Days after a quarter ends before the submission is due.
+FILING_DAYS = 45
+
+
+@dataclass(frozen=True)
+class Quarter:
+    """A federal fiscal quarter and when its submission is due."""
+
+    label: str
+    start: date
+    end: date
+    due: date
+
+    @property
+    def description(self) -> str:
+        span = f"{self.start:%b}\u2013{self.end:%b}"
+        return f"{self.label} ({span}), due {self.due:%b} {self.due.day}, {self.due.year}"
+
+
+def quarter_for(when: date, *, filing_days: int = FILING_DAYS) -> Quarter:
+    """The fiscal quarter containing a date, and its filing deadline.
+
+    Federal fiscal quarters, not calendar ones: the year rolls over in October, so
+    a shift worked in October 2026 is filed under FFY2027. Easy to get wrong, and
+    expensive to - the deadline moves by three months.
+    """
+    import calendar
+    from datetime import timedelta
+
+    name = _MONTH_TO_QUARTER[when.month]
+    first_month, last_month = _FISCAL_QUARTERS[name]
+    fiscal_year = when.year + 1 if when.month >= 10 else when.year
+    start_year = fiscal_year - 1 if name == "Q1" else fiscal_year
+    start = date(start_year, first_month, 1)
+    end = date(start_year, last_month, calendar.monthrange(start_year, last_month)[1])
+    return Quarter(f"FFY{fiscal_year} {name}", start, end, end + timedelta(days=filing_days))
+
+
+@dataclass
+class FacilitySummary:
+    """One facility over one period, in the shape the quarterly filing needs."""
+
+    facility_code: str
+    facility_name: str
+    period_start: date
+    period_end: date
+    hours_by_role: dict[str, float] = field(default_factory=dict)
+    total_hours: float = 0.0
+    verified_hours: float = 0.0
+    conflict_hours: float = 0.0
+    schedule_only_hours: float = 0.0
+    unallocated_hours: float = 0.0
+    zero_rn_days: int = 0
+    zero_rn_warn: int = 0
+    zero_rn_critical: int = 0
+    cap_violations: int = 0
+    traceability_variance_pct: float = 0.0
+    traceability_threshold: float = 4.0
+    quarter: Quarter | None = None
+
+    @property
+    def pct_verified(self) -> float:
+        return round((self.verified_hours / self.total_hours * 100) if self.total_hours else 0.0, 1)
+
+    @property
+    def pct_unallocated(self) -> float:
+        base = self.total_hours + self.unallocated_hours
+        return round((self.unallocated_hours / base * 100) if base else 0.0, 1)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "facility_code": self.facility_code,
+            "facility": self.facility_name,
+            "period_start": self.period_start.isoformat(),
+            "period_end": self.period_end.isoformat(),
+            "hours_by_role": self.hours_by_role,
+            "total_hours": self.total_hours,
+            "verified_hours": self.verified_hours,
+            "conflict_hours": self.conflict_hours,
+            "schedule_only_hours": self.schedule_only_hours,
+            "unallocated_hours": self.unallocated_hours,
+            "pct_verified": self.pct_verified,
+            "pct_unallocated": self.pct_unallocated,
+            "zero_rn_days": self.zero_rn_days,
+            "zero_rn_warn": self.zero_rn_warn,
+            "zero_rn_critical": self.zero_rn_critical,
+            "cap_violations": self.cap_violations,
+            "traceability_variance_pct": self.traceability_variance_pct,
+            "traceability_threshold": self.traceability_threshold,
+            "quarter": self.quarter.description if self.quarter else None,
+            "quarter_due": self.quarter.due.isoformat() if self.quarter else None,
+        }
+
+
+def summarize(
+    *,
+    staffing: StaffingResult,
+    match: MatchResult,
+    pack: Any,
+    segments: Sequence[Mapping[str, Any]] = (),
+) -> list[FacilitySummary]:
+    """One summary per facility per period."""
+    rn_intervals = day_intervals(segments, role_family(pack, "nurse_rn"))
+    cap = float(pack.setting("pbj.daily_cap_hours", 22.5) or 22.5)
+    zero_rn = pack.setting("zero_rn_days", {}) or {}
+    threshold = float(pack.setting("pbj.traceability_variance_pct", 4.0) or 4.0)
+    crosswalk = pack.crosswalk("facilities") if hasattr(pack, "crosswalk") else None
+    names = {entry.code: entry.name for entry in crosswalk.entries} if crosswalk else {}
+
+    periods_by_date: dict[date, Any] = {}
+    for period in match.periods:
+        day = period.start
+        while day <= period.end:
+            periods_by_date[day] = period
+            day = date.fromordinal(day.toordinal() + 1)
+
+    summaries: dict[tuple[str, date], FacilitySummary] = {}
+
+    def summary_for(facility: str, when: date) -> FacilitySummary | None:
+        period = periods_by_date.get(when)
+        if period is None:
+            return None
+        key = (facility, period.start)
+        if key not in summaries:
+            summaries[key] = FacilitySummary(
+                facility_code=facility,
+                facility_name=names.get(facility) or facility or "(unrecorded site)",
+                period_start=period.start,
+                period_end=period.end,
+                zero_rn_warn=int(zero_rn.get("warn", 4) or 4),
+                zero_rn_critical=int(zero_rn.get("critical", 7) or 7),
+                traceability_threshold=threshold,
+                quarter=quarter_for(period.start),
+            )
+        return summaries[key]
+
+    daily_totals: dict[tuple[str, date, str], float] = {}
+    for row in staffing.rows:
+        summary = summary_for(row.facility_code, row.work_date)
+        if summary is None:
+            continue
+        summary.total_hours = round_hours(summary.total_hours + row.pbj_hours) or 0.0
+        summary.hours_by_role[row.role_code] = (
+            round_hours(summary.hours_by_role.get(row.role_code, 0.0) + row.pbj_hours) or 0.0
+        )
+        if row.tier == TIER_VERIFIED:
+            summary.verified_hours = round_hours(summary.verified_hours + row.pbj_hours) or 0.0
+        elif row.tier == TIER_CONFLICT:
+            summary.conflict_hours = round_hours(summary.conflict_hours + row.pbj_hours) or 0.0
+        else:
+            summary.schedule_only_hours = (
+                round_hours(summary.schedule_only_hours + row.pbj_hours) or 0.0
+            )
+        key = (row.facility_code, row.work_date, row.person_id)
+        daily_totals[key] = round_hours(daily_totals.get(key, 0.0) + row.scheduled_hours) or 0.0
+
+    for item in staffing.unallocated:
+        summary = summary_for(item.facility_code, item.period_start)
+        if summary is not None:
+            summary.unallocated_hours = round_hours(summary.unallocated_hours + item.hours) or 0.0
+
+    for (facility, when, _person), hours in daily_totals.items():
+        if hours > cap:
+            summary = summary_for(facility, when)
+            if summary is not None:
+                summary.cap_violations += 1
+
+    coverage = match.coverage.schedule
+    if coverage is not None:
+        for summary in summaries.values():
+            day = max(summary.period_start, coverage.start)
+            last = min(summary.period_end, coverage.end)
+            while day <= last:
+                if not rn_intervals.get((summary.facility_code, day)):
+                    summary.zero_rn_days += 1
+                day = date.fromordinal(day.toordinal() + 1)
+
+    totals: dict[tuple[str, date], list[float]] = {}
+    for week in match.weeks:
+        if not week.in_both_coverages:
+            continue
+        key = (week.facility_code, week.period.start)
+        scheduled, paid, pto = totals.get(key, [0.0, 0.0, 0.0])
+        totals[key] = [
+            scheduled + week.scheduled_work_hours,
+            paid + week.paid_hours,
+            pto + week.scheduled_pto_hours,
+        ]
+    for key, (scheduled, paid, pto) in totals.items():
+        summary = summaries.get(key)
+        if summary is None:
+            continue
+        comparable = round_hours(paid - pto) or 0.0
+        base = max(scheduled, comparable)
+        summary.traceability_variance_pct = (
+            round(abs(scheduled - comparable) / base * 100, 1) if base else 0.0
+        )
+
+    return sorted(
+        summaries.values(),
+        key=lambda item: (item.facility_code, item.period_start),
+    )

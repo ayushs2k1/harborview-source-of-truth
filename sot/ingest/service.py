@@ -7,7 +7,7 @@ missing payroll column must never stop the roster from loading.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -72,6 +72,11 @@ class IngestResult:
     golden: Any = None
     match: Any = None
     staffing: Any = None
+    summaries: list[Any] = field(default_factory=list)
+    expirations: Any = None
+    #: Shift segments as stored, with their resolved person attached. The copies the
+    #: adapter produced have no person on them, because resolution had not run yet.
+    segments: list[Any] = field(default_factory=list)
     credentials: list[Any] = field(default_factory=list)
     pay_lines: list[Any] = field(default_factory=list)
     schedules: list[Any] = field(default_factory=list)
@@ -104,8 +109,14 @@ def ingest_paths(
     as_of: date | None = None,
     db: Database | None = None,
     type_overrides: dict[str, str] | None = None,
+    on_start: Callable[[RunContext], None] | None = None,
 ) -> IngestResult:
-    """Ingest a directory, a file, or a list of them."""
+    """Ingest a directory, a file, or a list of them.
+
+    ``on_start`` is handed the run as soon as it has an identifier and an event log,
+    before any work happens. That is what lets the browser subscribe to a run it has
+    only just asked for rather than waiting for it to finish.
+    """
     from sot.config import settings
 
     pack = load_pack(pack_id or settings().default_pack)
@@ -135,6 +146,8 @@ def ingest_paths(
     )
     context = RunContext(pack, as_of, db, input_digest=input_digest)
     context.start()
+    if on_start is not None:
+        on_start(context)
 
     result = IngestResult(
         run_id=context.run_id, status="RUNNING", as_of=as_of, pack=pack.id, context=context
@@ -1052,6 +1065,7 @@ def _build_ledger_and_match(
     payroll = _records_for_role(result, "payroll")
     credential_records = _records_for_role(result, "credentials")
     segments = _resolved_segments(db, context.run_id)
+    result.segments = segments
     person_by_record = {link.record_id: link.person_id for link in resolution.links}
     for person in resolution.persons:
         if getattr(person, "record_id", ""):
@@ -1128,6 +1142,30 @@ def _build_ledger_and_match(
         node.rows_in = len(segments)
         node.rows_out = len(staffing.rows)
         db.insert_rows("daily_hours", [row.as_row(context.run_id) for row in staffing.rows])
+
+    with context.node("views", "Views", "view") as node:
+        from sot.views.expirations import build_expirations
+        from sot.views.staffing import summarize
+
+        facilities = {
+            person.person_id: (getattr(person, "facility_code", "") or "")
+            for person in resolution.persons
+        }
+        result.summaries = summarize(
+            staffing=result.staffing, match=result.match, pack=pack, segments=segments
+        )
+        result.expirations = build_expirations(
+            credentials=result.credentials,
+            as_of=context.as_of,
+            pack=pack,
+            display_names=display_names,
+            facilities=facilities,
+            person_days=result.match.days,
+            pay_lines=result.pay_lines,
+            vendor_records=_records_for_role(result, "vendor_documents"),
+        )
+        node.rows_in = len(result.staffing.rows) + len(result.credentials)
+        node.rows_out = len(result.summaries) + len(result.expirations.rows)
 
     with context.node("rules", "Rules", "rules") as node:
         load_rule_modules()

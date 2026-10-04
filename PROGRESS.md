@@ -4,6 +4,28 @@ Updated after each build phase. Format: done / next / risks.
 
 ---
 
+## Phase 6 — Views, API, and CLI ✅
+
+**Done**
+
+- **Expiration radar**: every credential and vendor document in one list sorted by urgency, with what a date alone cannot tell you — whether anybody worked on the wrong side of it, and whether the renewal can be supported by the hours we hold.
+- **Referral readiness**: RN coverage as an unbroken stretch, licensed and aide hours, tour cover, on-duty staff with credential status, open critical findings for that facility-day, and hours per resident before and after one more admission. Labelled a fast indicator, with the note that the statutory standard is a quarterly average.
+- **Staffing summaries** per facility and period, with the filing period named: `FFY2026 Q4 (Jul–Sep), due Nov 14, 2026`. Federal fiscal quarters, not calendar ones.
+- **The pipeline specification**: a validated graph with typed ports. It refused my own first draft — the views step consumed census data it had not declared — which is the point of validating before any data moves.
+- **26 API endpoints**, including live SSE while a run happens and replay from the stored log afterwards.
+- **Safe parameter editing**: 14 declared parameters with types and ranges, written to an overrides file so the pack's shipped defaults stay visible and one deletion undoes everything.
+- **Six CLI reports** per run, plus eight CSV exports over the API.
+- **709 tests passing** (43 new), ruff clean.
+
+**Two bugs the tests caught**
+
+- The referral view read the adapter's own segments, which have no person attached because resolution had not run when they were made. Everybody's credential status came back unknown.
+- Rebuilding person-days from storage dropped the three-valued columns, so the API reported every credential as unknown while the direct call reported them correctly. Unknown is never green, so the view said it could not tell — which is the one wrong answer that looks responsible.
+
+**Next — phases 7 to 9**
+
+---
+
 ## Phase 5 — Ledger, golden records, the four-way match, and the rules ✅
 
 **Done**

@@ -91,7 +91,9 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     )
 
     out_dir = Path(args.out) if args.out else settings().reports_dir / result.run_id
-    written = write_run_reports(result, out_dir)
+    from sot.ingest.contracts import load_pack
+
+    written = write_run_reports(result, out_dir, load_pack(result.pack))
 
     counts = result.context.flags.counts_by_severity() if result.context else {}
     summary = "  ".join(f"{name} {count}" for name, count in counts.items() if count)
