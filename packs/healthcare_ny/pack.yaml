@@ -26,6 +26,15 @@ detection:
   # How far into a file to look for the header row, for files with a preamble.
   max_preamble_rows: 20
 
+# What a rota cell can say besides a shift. Matched case-insensitively after the
+# dash characters are normalised. Anything not listed and not a time range is flagged
+# rather than silently ignored.
+shift_codes:
+  off: [OFF, O, X, RDO, "-", "--"]
+  pto: [PTO, VAC, VACATION, SICK, SL, HOL, HOLIDAY, LOA, FMLA, BRV, BEREAVEMENT, JURY]
+  training: [ORIENT, ORIENTATION, TRN, TRAINING, INSERVICE, IN-SERVICE, PRECEPT]
+  oncall: [OC, ON CALL, ONCALL, CALL, STANDBY]
+
 # Titles that do not determine a role on their own. Resolved through the person's
 # linked credential instead of guessed at.
 ambiguous_role_titles: [nurse, charge nurse, floor nurse, staff nurse, nursing staff, caregiver]

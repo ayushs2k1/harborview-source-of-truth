@@ -2,7 +2,7 @@
 
 Generated from the rule registry by `make docs`. Do not edit by hand.
 
-81 rules, 11 with an evaluator so far.
+81 rules, 36 with an evaluator so far.
 
 Severity means: **BLOCKER** a file or page could not be processed, and only that one is affected · **CRITICAL** compliance, safety, or money is at risk · **WARNING** needs human judgement · **INFO** auto-fixed or informational, aggregated so the inbox stays readable.
 
@@ -10,26 +10,22 @@ Severity means: **BLOCKER** a file or page could not be processed, and only that
 
 | Priority | Rules | With an evaluator |
 |---|---|---|
-| P0 | 58 | 8 |
-| P1 | 22 | 3 |
+| P0 | 58 | 25 |
+| P1 | 22 | 11 |
 | P2 | 1 | 0 |
 
-P0 rules still to implement: 50
+P0 rules still to implement: 33
 
 ```
-ACTIVITY_BEFORE_HIRE                CODE_UNKNOWN_FACILITY               CODE_UNKNOWN_ROLE                   COVERAGE_GAP_BETWEEN_SOURCES
-CREDENTIAL_EXPIRED                  CREDENTIAL_EXPIRING                 DAILY_HOURS_OVER_CAP                DATE_IMPOSSIBLE
-DATE_UNPARSEABLE                    DUPLICATE_PAY_PERIOD                DUPLICATE_PERSON_HR                 EMPLOYEE_ID_COLLISION
-FACILITY_CONFLICT                   HOURS_EXCESSIVE_WEEK                HOURS_NEGATIVE                      HOURS_UNPARSEABLE
-HOURS_VARIANCE                      HR_LICENSE_EXPIRY_STALE             LICENSED_ROLE_NO_CREDENTIAL         LICENSE_NOT_IN_SERVICE
-LICENSE_NUMBER_SHARED               LICENSE_PREFIX_TYPE_MISMATCH        MATCH_AMBIGUOUS                     MATCH_REVIEW
-NAME_MISMATCH_LICENSE               OVERLAPPING_SHIFTS                  PAID_NOT_SCHEDULED                  PAYROLL_PERIOD_INVALID
-PBJ_TRACEABILITY_VARIANCE           PBJ_UNALLOCATED_HOURS               PDF_FACILITY_UNKNOWN                PDF_FOOTNOTE_MISSING
-PDF_NO_TEXT_LAYER                   PDF_TABLE_NOT_FOUND                 PHONE_INVALID                       PTO_ON_SCHEDULE
-RN_8H_COVERAGE_GAP                  ROLE_CONFLICT                       ROLE_EXCEEDS_LICENSE                SCHEDULED_AFTER_EXPIRY
-SCHEDULED_NOT_PAID                  SHIFT_NOT_IN_FOOTNOTE               SHIFT_UNPARSEABLE                   UNMATCHED_LICENSE
-UNMATCHED_PAYROLL                   UNMATCHED_SCHEDULE                  VALUE_NORMALIZED                    VERIFICATION_STALE
-WEEKDAY_DATE_MISMATCH               WORKED_AFTER_EXPIRY
+ACTIVITY_BEFORE_HIRE                COVERAGE_GAP_BETWEEN_SOURCES        CREDENTIAL_EXPIRED                  CREDENTIAL_EXPIRING
+DAILY_HOURS_OVER_CAP                DUPLICATE_PAY_PERIOD                DUPLICATE_PERSON_HR                 EMPLOYEE_ID_COLLISION
+FACILITY_CONFLICT                   HOURS_EXCESSIVE_WEEK                HOURS_VARIANCE                      HR_LICENSE_EXPIRY_STALE
+LICENSED_ROLE_NO_CREDENTIAL         LICENSE_NOT_IN_SERVICE              LICENSE_NUMBER_SHARED               MATCH_AMBIGUOUS
+MATCH_REVIEW                        NAME_MISMATCH_LICENSE               OVERLAPPING_SHIFTS                  PAID_NOT_SCHEDULED
+PAYROLL_PERIOD_INVALID              PBJ_TRACEABILITY_VARIANCE           PBJ_UNALLOCATED_HOURS               RN_8H_COVERAGE_GAP
+ROLE_CONFLICT                       ROLE_EXCEEDS_LICENSE                SCHEDULED_AFTER_EXPIRY              SCHEDULED_NOT_PAID
+UNMATCHED_LICENSE                   UNMATCHED_PAYROLL                   UNMATCHED_SCHEDULE                  VERIFICATION_STALE
+WORKED_AFTER_EXPIRY
 ```
 
 ## File and structure
@@ -52,20 +48,20 @@ WEEKDAY_DATE_MISMATCH               WORKED_AFTER_EXPIRY
 
 | Code | Severity | Pri | Owner | Meaning |
 |---|---|---|---|---|
-| `LICENSE_PREFIX_TYPE_MISMATCH` *(pending)* | CRITICAL | P0 | HR | License prefix contradicts its type |
-| `CODE_UNKNOWN_FACILITY` *(pending)* | WARNING | P0 | DATA_STEWARD | Facility code not in the crosswalk |
-| `CODE_UNKNOWN_ROLE` *(pending)* | WARNING | P0 | DATA_STEWARD | Role code not in the crosswalk |
-| `DATE_IMPOSSIBLE` *(pending)* | WARNING | P0 | DATA_STEWARD | Date doesn't exist |
-| `DATE_UNPARSEABLE` *(pending)* | WARNING | P0 | DATA_STEWARD | Date couldn't be read |
+| `LICENSE_PREFIX_TYPE_MISMATCH` | CRITICAL | P0 | HR | License prefix contradicts its type |
+| `CODE_UNKNOWN_FACILITY` | WARNING | P0 | DATA_STEWARD | Facility code not in the crosswalk |
+| `CODE_UNKNOWN_ROLE` | WARNING | P0 | DATA_STEWARD | Role code not in the crosswalk |
+| `DATE_IMPOSSIBLE` | WARNING | P0 | DATA_STEWARD | Date doesn't exist |
+| `DATE_UNPARSEABLE` | WARNING | P0 | DATA_STEWARD | Date couldn't be read |
 | `HOURS_EXCESSIVE_WEEK` *(pending)* | WARNING† | P0 | PAYROLL | Implausible weekly hours |
-| `HOURS_NEGATIVE` *(pending)* | WARNING | P0 | PAYROLL | Negative hours; possibly a reversal |
-| `HOURS_UNPARSEABLE` *(pending)* | WARNING | P0 | PAYROLL | Hours couldn't be read |
-| `PHONE_INVALID` *(pending)* | WARNING | P0 | HR | Phone number invalid |
-| `DATE_AMBIGUOUS_ASSUMED` *(pending)* | INFO | P1 | DATA_STEWARD | Day/month order assumed |
-| `EXCEL_SERIAL_DATE` *(pending)* | INFO | P1 | DATA_STEWARD | Excel serial converted |
-| `LICENSE_NUMBER_CHAR_CONFUSION` *(pending)* | INFO | P1 | DATA_STEWARD | O/0 or I/L/1 substitution applied |
+| `HOURS_NEGATIVE` | WARNING | P0 | PAYROLL | Negative hours; possibly a reversal |
+| `HOURS_UNPARSEABLE` | WARNING | P0 | PAYROLL | Hours couldn't be read |
+| `PHONE_INVALID` | WARNING | P0 | HR | Phone number invalid |
+| `DATE_AMBIGUOUS_ASSUMED` | INFO | P1 | DATA_STEWARD | Day/month order assumed |
+| `EXCEL_SERIAL_DATE` | INFO | P1 | DATA_STEWARD | Excel serial converted |
+| `LICENSE_NUMBER_CHAR_CONFUSION` | INFO | P1 | DATA_STEWARD | O/0 or I/L/1 substitution applied |
 | `NULL_TOKEN` | INFO | P1 | DATA_STEWARD | Null tokens found (aggregated) |
-| `VALUE_NORMALIZED` *(pending)* | INFO | P0 | DATA_STEWARD | Values reformatted (aggregated) |
+| `VALUE_NORMALIZED` | INFO | P0 | DATA_STEWARD | Values reformatted (aggregated) |
 
 † Severity depends on context:
 
@@ -79,7 +75,7 @@ WEEKDAY_DATE_MISMATCH               WORKED_AFTER_EXPIRY
 | `LICENSE_NUMBER_SHARED` *(pending)* | CRITICAL | P0 | HR | One credential number on two people |
 | `UNMATCHED_PAYROLL` *(pending)* | CRITICAL | P0 | PAYROLL | Paid but not in HR: a ghost-employee red flag, or unrecorded agency staff |
 | `DUPLICATE_PERSON_HR` *(pending)* | WARNING | P0 | HR | Same person under two HR IDs |
-| `DUPLICATE_SCHEDULE_ROW` *(pending)* | WARNING | P1 | DON | Person listed twice on one page |
+| `DUPLICATE_SCHEDULE_ROW` | WARNING | P1 | DON | Person listed twice on one page |
 | `LICENSE_NOT_IN_SERVICE` *(pending)* | WARNING† | P0 | HR | HR lists a license number the verification service doesn't have |
 | `MATCH_AMBIGUOUS` *(pending)* | WARNING | P0 | DATA_STEWARD | Top two candidates too close |
 | `MATCH_REVIEW` *(pending)* | WARNING | P0 | DATA_STEWARD | Score in the review band |
@@ -128,7 +124,7 @@ WEEKDAY_DATE_MISMATCH               WORKED_AFTER_EXPIRY
 | `LONG_DAY` *(pending)* | WARNING | P1 | DON | Day longer than the fatigue limit |
 | `VERIFICATION_STALE` *(pending)* | WARNING | P0 | HR | last_verified older than verification_max_age_days |
 | `VERIFIED_DATE_IN_FUTURE` *(pending)* | WARNING | P1 | DATA_STEWARD | Verification date is in the future |
-| `WEEKDAY_DATE_MISMATCH` *(pending)* | WARNING | P0 | DON | Schedule weekday doesn't match its date |
+| `WEEKDAY_DATE_MISMATCH` | WARNING | P0 | DON | Schedule weekday doesn't match its date |
 | `CONSECUTIVE_DAYS` *(pending)* | INFO | P1 | DON | Too many days in a row |
 | `SHORT_REST` *(pending)* | INFO | P1 | DON | Too little rest between shifts |
 
@@ -141,17 +137,17 @@ WEEKDAY_DATE_MISMATCH               WORKED_AFTER_EXPIRY
 
 | Code | Severity | Pri | Owner | Meaning |
 |---|---|---|---|---|
-| `PDF_NO_TEXT_LAYER` *(pending)* | BLOCKER† | P0 | DATA_STEWARD | Scanned page |
-| `PDF_TABLE_NOT_FOUND` *(pending)* | BLOCKER | P0 | DATA_STEWARD | No table could be extracted |
-| `PDF_FACILITY_UNKNOWN` *(pending)* | WARNING† | P0 | DATA_STEWARD | Page facility not recognized |
-| `PDF_FOOTNOTE_MISSING` *(pending)* | WARNING | P0 | DON | No shift-length note; clock math used |
-| `SHIFT_UNPARSEABLE` *(pending)* | WARNING | P0 | DON | Cell couldn't be read |
-| `FOOTNOTE_CLOCK_MISMATCH` *(pending)* | INFO | P1 | DON | Footnote hours differ from clock math |
-| `PERSON_ON_MULTIPLE_PAGES` *(pending)* | INFO | P1 | DON | Legitimate float across facilities |
-| `PTO_ON_SCHEDULE` *(pending)* | INFO | P0 | DON | Paid time off on the schedule |
-| `SHIFT_AMBIGUOUS_ASSUMED` *(pending)* | INFO | P1 | DON | Ambiguous shift mapped using the footnote |
-| `SHIFT_NOT_IN_FOOTNOTE` *(pending)* | INFO | P0 | DON | Hours computed from clock times |
-| `SHIFT_SPANS_PERIOD` *(pending)* | INFO | P1 | DON | Shift runs past the period end |
+| `PDF_NO_TEXT_LAYER` | BLOCKER† | P0 | DATA_STEWARD | Scanned page |
+| `PDF_TABLE_NOT_FOUND` | BLOCKER | P0 | DATA_STEWARD | No table could be extracted |
+| `PDF_FACILITY_UNKNOWN` | WARNING† | P0 | DATA_STEWARD | Page facility not recognized |
+| `PDF_FOOTNOTE_MISSING` | WARNING | P0 | DON | No shift-length note; clock math used |
+| `SHIFT_UNPARSEABLE` | WARNING | P0 | DON | Cell couldn't be read |
+| `FOOTNOTE_CLOCK_MISMATCH` | INFO | P1 | DON | Footnote hours differ from clock math |
+| `PERSON_ON_MULTIPLE_PAGES` | INFO | P1 | DON | Legitimate float across facilities |
+| `PTO_ON_SCHEDULE` | INFO | P0 | DON | Paid time off on the schedule |
+| `SHIFT_AMBIGUOUS_ASSUMED` | INFO | P1 | DON | Ambiguous shift mapped using the footnote |
+| `SHIFT_NOT_IN_FOOTNOTE` | INFO | P0 | DON | Hours computed from clock times |
+| `SHIFT_SPANS_PERIOD` | INFO | P1 | DON | Shift runs past the period end |
 
 † Severity depends on context:
 

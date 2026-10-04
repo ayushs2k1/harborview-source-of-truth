@@ -114,3 +114,64 @@ All 81 codes from the rule catalog exist as data from the start, including the o
 whose evaluator is not written. That makes the generated documentation complete, lets
 the chaos deck demand coverage of codes that should exist, and turns "which P0 rules are
 still missing" into a query instead of a memory exercise.
+
+## The footnote beats the clock, and disagreements are kept
+
+A printed rota says at the bottom what its shifts are worth: "7a-3p, 3p-11p, 11p-7a
+are 8 hours". That is the facility telling us how it counts its own time, breaks
+included, and it wins over subtracting one clock time from another. Where the two
+disagree the footnote is used and the difference is reported, because an unpaid break
+is exactly the kind of thing that turns a reconciliation into an argument.
+
+Where the footnote is silent, the clock decides and the segment says so. Where there
+is no footnote at all, every segment says so.
+
+## A cell saying PTO does not say how long
+
+Paid leave has to be worth some number of hours or the week will not reconcile, and
+the rota does not supply one. The person's own usual shift that week is used, falling
+back to the facility's commonest shift, and the segment records that the figure was
+assumed rather than read. A facility whose leave day is not a normal shift length will
+see the difference in the variance, which is the right place for it to show up.
+
+## An ambiguous shift is matched against the page, then refused
+
+`7-3` could be eight hours or twenty. It is matched against the shifts the page's own
+footnote defines, which resolves it exactly when the facility has told us what it runs.
+Without a footnote it reads as a day shift, which is what a bare range on a rota
+overwhelmingly means. If neither gives a plausible length it is refused and flagged,
+because an invented twenty-hour shift would quietly become reported staffing.
+
+## Equal start and end is a full day, not nothing
+
+A shift from 7a to 7a is almost certainly a mistake in the source. Reading it as 24
+hours gets it caught by the daily cap rule; reading it as zero would hide it. When in
+doubt, prefer the reading that raises a flag.
+
+## Names keep two forms
+
+The comparison key is folded hard - accents stripped, punctuation removed, lowercased -
+because a system that cannot write accents has not given us a different person. The
+display form keeps every accent and apostrophe. Getting somebody's name wrong on screen
+is its own kind of failure, and the two requirements are irreconcilable in one string.
+
+## A column is read before its values are
+
+One date with a day above twelve settles the order for the whole column, and that is
+evidence rather than an assumption about the exporting system. So normalization runs in
+two passes: collect the column, decide how to read it, then parse each value. The flag
+says which it used and why.
+
+## Adapters report findings, not flags
+
+An adapter returns a rule code and the values its message needs; the caller decides
+what becomes a flag. That keeps the adapters testable without the rule machinery and
+keeps the decision about severity in one place.
+
+## A continuation page and an unrecognised page are different
+
+A page with a table and no facility might be a table that spilled over - in which case
+it quietly continues the page before it - or a page whose title names a site we do not
+know, in which case the facility has to be inferred from the staff listed and the
+assumption reported. They are told apart by whether anything is printed above the
+table, which is the only signal that actually distinguishes them.

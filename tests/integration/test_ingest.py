@@ -162,7 +162,10 @@ def test_an_unquoted_name_is_repaired(run, make_files):
     text = PAYROLL.replace('"REYES, SOFIA"', "REYES, SOFIA")
     result = run(make_files({"a.csv": text}))
     assert "ROW_DELIMITER_REPAIRED" in result.codes()
-    assert records_of(result, "payroll")[0]["employee_name"] == "REYES, SOFIA"
+    payload = records_of(result, "payroll")[0]
+    # Stored in display order once parsed, with the comparison key beside it.
+    assert payload["employee_name"] == "Sofia Reyes"
+    assert payload["employee_name__key"] == "reyes sofia"
 
 
 def test_a_bom_and_windows_line_endings_change_nothing(run, make_files):
@@ -178,7 +181,9 @@ def test_a_latin1_file_keeps_its_accents(run, make_files):
     text = PAYROLL.replace('"REYES, SOFIA"', '"PEÑA, JOSÉ"')
     result = run(make_files({"a.csv": text.encode("cp1252")}))
     assert "ENCODING_FALLBACK" in result.codes()
-    assert records_of(result, "payroll")[0]["employee_name"] == "PEÑA, JOSÉ"
+    payload = records_of(result, "payroll")[0]
+    assert payload["employee_name"] == "José Peña", "the accents have to survive"
+    assert payload["employee_name__family"] == "Peña"
 
 
 def test_a_tab_delimited_file_reads_the_same(run, make_files):

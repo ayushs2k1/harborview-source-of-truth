@@ -261,6 +261,7 @@ FORMAT_RULES = [
         "No action needed.",
         OWN.DATA_STEWARD,
         aggregate=A.BY_COLUMN,
+        implemented=True,
     ),
     _rule(
         "NULL_TOKEN",
@@ -287,6 +288,7 @@ FORMAT_RULES = [
         "The field is empty for this record, so any check that needs it is unknown.",
         "Correct the date in the source file.",
         OWN.DATA_STEWARD,
+        implemented=True,
     ),
     _rule(
         "DATE_IMPOSSIBLE",
@@ -299,6 +301,7 @@ FORMAT_RULES = [
         "date. The field is empty for this record.",
         "Correct the date in the source file.",
         OWN.DATA_STEWARD,
+        implemented=True,
     ),
     _rule(
         "DATE_AMBIGUOUS_ASSUMED",
@@ -312,6 +315,7 @@ FORMAT_RULES = [
         "Confirm the date order used by the exporting system.",
         OWN.DATA_STEWARD,
         aggregate=A.BY_COLUMN,
+        implemented=True,
     ),
     _rule(
         "EXCEL_SERIAL_DATE",
@@ -325,6 +329,7 @@ FORMAT_RULES = [
         "No action needed. Formatting the column as a date before export would avoid it.",
         OWN.DATA_STEWARD,
         aggregate=A.BY_COLUMN,
+        implemented=True,
     ),
     _rule(
         "PHONE_INVALID",
@@ -336,6 +341,7 @@ FORMAT_RULES = [
         "{display_name}'s phone number reads {raw_value!r}, which is not a usable number.",
         "Correct the number in HR.",
         OWN.HR,
+        implemented=True,
     ),
     _rule(
         "LICENSE_PREFIX_TYPE_MISMATCH",
@@ -348,6 +354,7 @@ FORMAT_RULES = [
         "{prefix_type}. One of the two is wrong, and which one changes who may work.",
         "Verify the credential with the issuing service and correct the record.",
         OWN.HR,
+        implemented=True,
     ),
     _rule(
         "LICENSE_NUMBER_CHAR_CONFUSION",
@@ -361,6 +368,7 @@ FORMAT_RULES = [
         "Confirm the number with the issuing service if the match matters.",
         OWN.DATA_STEWARD,
         aggregate=A.BY_FILE,
+        implemented=True,
     ),
     _rule(
         "HOURS_UNPARSEABLE",
@@ -373,6 +381,7 @@ FORMAT_RULES = [
         "of hours. This record contributes nothing to the totals.",
         "Correct the value in payroll.",
         OWN.PAYROLL,
+        implemented=True,
     ),
     _rule(
         "HOURS_NEGATIVE",
@@ -385,6 +394,7 @@ FORMAT_RULES = [
         "correction to an earlier period rather than an error.",
         "Confirm this is a reversal, and that the original row is also in the data.",
         OWN.PAYROLL,
+        implemented=True,
     ),
     _rule(
         "HOURS_EXCESSIVE_WEEK",
@@ -411,6 +421,7 @@ FORMAT_RULES = [
         "Map the code to a facility, or correct it at source.",
         OWN.DATA_STEWARD,
         aggregate=A.BY_COLUMN,
+        implemented=True,
     ),
     _rule(
         "CODE_UNKNOWN_ROLE",
@@ -424,6 +435,7 @@ FORMAT_RULES = [
         "Map the code to a role, or correct it at source.",
         OWN.DATA_STEWARD,
         aggregate=A.BY_COLUMN,
+        implemented=True,
     ),
 ]
 
@@ -566,6 +578,7 @@ IDENTITY_RULES = [
         "row(s) are not counted twice.",
         "Remove the duplicate row from the schedule.",
         OWN.DON,
+        implemented=True,
     ),
     _rule(
         "SHARED_PHONE",
@@ -849,6 +862,7 @@ TIME_RULES = [
         "{actual_weekday}. The date has been trusted.",
         "Correct the schedule heading before it is posted again.",
         OWN.DON,
+        implemented=True,
     ),
     _rule(
         "DAILY_HOURS_OVER_CAP",
@@ -918,7 +932,7 @@ PDF_RULES = [
         OWN.DATA_STEWARD,
         severity_fn=_severity_pdf_no_text_layer,
         severity_note="INFO when OCR read the page; BLOCKER for that page otherwise.",
-        implemented=False,
+        implemented=True,
     ),
     _rule(
         "PDF_TABLE_NOT_FOUND",
@@ -931,6 +945,7 @@ PDF_RULES = [
         "processed normally.",
         "Check the page is part of the schedule; a cover or notes page is harmless.",
         OWN.DATA_STEWARD,
+        implemented=True,
     ),
     _rule(
         "PDF_FACILITY_UNKNOWN",
@@ -945,6 +960,7 @@ PDF_RULES = [
         severity_fn=_severity_pdf_facility_unknown,
         severity_note="WARNING when the facility can be inferred from the staff listed; "
         "BLOCKER for that page when it cannot.",
+        implemented=True,
     ),
     _rule(
         "PDF_FOOTNOTE_MISSING",
@@ -957,6 +973,7 @@ PDF_RULES = [
         "computed from the clock times. A shift with an unpaid break will read long.",
         "Add the shift-length note to the printed schedule.",
         OWN.DON,
+        implemented=True,
     ),
     _rule(
         "SHIFT_UNPARSEABLE",
@@ -969,6 +986,7 @@ PDF_RULES = [
         "is not a shift or a known absence code. No hours counted for that day.",
         "Correct the cell, or add the code to the pack if it is a real absence type.",
         OWN.DON,
+        implemented=True,
     ),
     _rule(
         "SHIFT_NOT_IN_FOOTNOTE",
@@ -982,6 +1000,7 @@ PDF_RULES = [
         "Add the shift to the footnote if it is a standard pattern.",
         OWN.DON,
         aggregate=A.BY_FILE,
+        implemented=True,
     ),
     _rule(
         "PTO_ON_SCHEDULE",
@@ -996,6 +1015,7 @@ PDF_RULES = [
         "No action needed.",
         OWN.DON,
         aggregate=A.BY_FILE,
+        implemented=True,
     ),
     _rule(
         "FOOTNOTE_CLOCK_MISMATCH",
@@ -1008,6 +1028,7 @@ PDF_RULES = [
         "{clock_hours}. The footnote has been used, as it accounts for breaks.",
         "No action needed unless the footnote is wrong.",
         OWN.DON,
+        implemented=True,
     ),
     _rule(
         "SHIFT_AMBIGUOUS_ASSUMED",
@@ -1021,6 +1042,7 @@ PDF_RULES = [
         "Write shifts as 7a-3p on the printed schedule to remove the ambiguity.",
         OWN.DON,
         aggregate=A.BY_FILE,
+        implemented=True,
     ),
     _rule(
         "SHIFT_SPANS_PERIOD",
@@ -1034,6 +1056,7 @@ PDF_RULES = [
         "No action needed.",
         OWN.DON,
         aggregate=A.BY_FILE,
+        implemented=True,
     ),
     _rule(
         "PERSON_ON_MULTIPLE_PAGES",
@@ -1046,6 +1069,7 @@ PDF_RULES = [
         "reported against the site where each shift was worked.",
         "No action needed.",
         OWN.DON,
+        implemented=True,
     ),
 ]
 

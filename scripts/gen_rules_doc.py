@@ -49,9 +49,7 @@ def render() -> str:
     ]
     for priority in ("P0", "P1", "P2"):
         group = RULES.by_priority(priority)
-        lines.append(
-            f"| {priority} | {len(group)} | {len([s for s in group if s.implemented])} |"
-        )
+        lines.append(f"| {priority} | {len(group)} | {len([s for s in group if s.implemented])} |")
 
     pending = RULES.unimplemented("P0")
     lines.extend(["", f"P0 rules still to implement: {len(pending)}", ""])

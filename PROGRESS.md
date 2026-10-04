@@ -4,6 +4,56 @@ Updated after each build phase. Format: done / next / risks.
 
 ---
 
+## Phase 3 — Normalizers and the PDF adapter ✅
+
+**Done**
+
+- **Seven normalizers**, each returning a value, a quality (`ok` / `repaired` / `ambiguous` / `invalid`), a note, and the rule code its outcome should raise: names, dates, phones, credential numbers, hours, codes, and shifts.
+- **Nickname table**: 549 names across ~140 equivalence classes, English and Spanish, in `packs/core/nicknames.csv`.
+- **The shift grammar**, shared by every pack: every written form in the spec, doubles, overnight, non-work codes, hand-written annotations, footnote parsing, and the midnight split.
+- **The schedule PDF adapter**: three extraction tiers, facility matching with inference, year inference, wrapped-cell merging, per-cell bounding boxes, and segment output.
+- **Two-pass normalization** wired into ingestion, plus a schedule node that runs after the tabular sources because it needs their payroll periods and home facilities.
+- **36 of 81 rules now have evaluators**, up from 11. P0 remaining: 33, down from 50.
+- **498 tests passing** (253 new), ruff clean.
+
+**Verified, not assumed**
+
+- The clean schedule PDF parses to *exactly* the hours payroll was derived from — all ten people, to the hour. That is phase 3's exit criterion and the number every later phase is measured against.
+- **101 shift-grammar tests**, against the spec's ≥40.
+- The clean run still raises nothing above INFO; the messy run finds every planted schedule problem; the scanned PDF blocks itself per page without crashing.
+- The year comes from the payroll periods, because the printed page carries none — exactly the path the brief implies.
+- Generated layout variations pass: en dashes, a missing footnote, a table spilling onto a second page, a page with no grid lines at all (rebuilt from word positions), a notes page, and a page whose title names no known facility.
+
+**Six problems found and fixed**
+
+- **A titleless second page inherited the first page's facility** instead of being inferred from its own staff. A continuation page and a page whose title we simply do not recognise are different things, and they are now told apart by whether anything is printed above the table.
+- **The footnote parser required the shift tokens to be adjacent.** Real notes put words between them — "Day 7a-3p and evening 3p-11p are 8 hrs" — and that read as having no footnote at all. Now clause-based.
+- **Splitting footnote clauses on the full stop broke "7.5 hours"** into two clauses, losing the only shift length on the page. Sentence endings are now distinguished from decimal points and from "a.m.".
+- **`36h 30m` did not parse**, because the unit pattern required an `r` after the `h`.
+- **Credential stripping was all-or-nothing.** `"DOE RN"` is a name and a credential; `"ANN MA"` is two names. The set is now split by whether the abbreviation is ever plausibly a surname.
+- One of my own test premises was wrong: `3-1` genuinely can be read as 3am–1pm, so it is read rather than refused.
+
+**Design decisions, all in `DECISIONS.md`**
+
+- The footnote wins over the clock, because it is the facility stating what its shifts are worth including breaks. Where they disagree, both are kept and the difference is reported.
+- A cell saying `PTO` does not say how long. The person's own usual shift that week is used, falling back to the facility's commonest, and the segment records that it was assumed.
+- A bare `7-3` is matched against the shifts the page's footnote defines; with no footnote it reads as a day shift, and an implausible reading is refused rather than invented.
+- Equal start and end reads as 24 hours, not zero — almost certainly a source error, and 24 gets caught by the daily cap while zero would hide it.
+- Names keep two forms: a hard-folded comparison key and a display form with every accent intact.
+- The adapter reports findings rather than raising flags, so it can be tested without the rule machinery.
+
+**Next — phase 4: identity resolution**
+
+Weighted scoring with stored explanations, the deterministic credential anchor, bands, one-to-one assignment, provisional persons, and the duplicate and collision checks.
+
+**Risks**
+
+- *Reduced (R1):* the PDF adapter now handles ruled tables, text layout, and bare word positions, and every page failure is isolated. The parametric generator has exercised six layout variations it had not seen. It remains the highest-variance input, but it is no longer the one I would bet on breaking.
+- *New:* PTO hours are an assumption. It is recorded on every segment and shown as an assumption in the UI, but a facility whose leave day is not a normal shift length will see it in the variance.
+- *Carried (R6):* the clean set still raises nothing above INFO. The domain rules that could change that arrive in phase 5.
+
+---
+
 ## Phase 2 — Ingestion ✅
 
 **Done**
