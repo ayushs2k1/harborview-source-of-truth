@@ -4,6 +4,46 @@ Updated after each build phase. Format: done / next / risks.
 
 ---
 
+## Phase 1 — Fixtures first ✅
+
+**Done**
+
+- `scripts/make_schedule_pdf.py`: parametric weekly-schedule PDF. The chaos deck can vary the dash character, the footnote, header wording, rows per page, grid lines, page splitting, and whether there is a text layer at all. Also rasterizes to an image-only PDF for the scanned case.
+- `scripts/generate_samples.py`: the three healthcare sample sets, with every planted problem annotated with the rule code it should raise.
+- `data/samples/healthcare/{clean,messy,scan}/` committed, plus a README documenting the construction and every planted trap.
+- **113 tests passing** (34 new), ruff clean.
+
+**Two design choices worth knowing**
+
+- **Coverage first, payroll second.** The schedule is authored to satisfy the domain rules, and payroll is *derived* from it. Hand-written payroll that is hoped to reconcile is how fixtures drift; derived payroll reconciles by construction, so every variance in the messy set is a visible, deliberate override rather than an arithmetic slip.
+- **The census is derived too.** Hours per resident per day is a ratio, so a census invented independently of the roster would put a compliant schedule in violation. The clean census is computed backwards from the thinnest staffed day, which keeps the clean set green when staffing is edited. The messy set ships a realistic, deliberately under-staffed census so the HPRD rule has something to find.
+
+**Verified, not assumed**
+
+- Byte-reproducible: generating twice into separate directories gives identical hashes for all 13 files, PDFs included (reportlab `invariant=1`). A test also asserts the committed fixtures are what the generator produces right now, so a stale fixture fails rather than drifts.
+- The clean set is compliant *as data*, before the engine exists to judge it: RN coverage ≥ 8 consecutive hours on every facility-day, an aide on every facility-day, payroll reconciling exactly with the schedule per person per facility, every credential outside all four expiry windows, verifications fresh, aide certifications on month ends, and a census that satisfies all three HPRD minimums every day.
+- The clean PDF extracts as a proper table through pdfplumber (ruled grid), day headers carry no year — so the year must be inferred from the payroll periods, exactly as the brief implies — and the scanned PDF yields zero text.
+- A test reads the generator source and fails if it ever calls `date.today()` or similar: a fixture that moves with the calendar breaks tests on a date nobody chose.
+
+**Three problems found and fixed during the phase**
+
+- The messy payroll under-paid the one person given a shift the footnote does not define, because the generator looked hours up only in the footnote table. It now falls back to clock arithmetic, as the adapter will — otherwise the fixture carried an unintended hours variance on top of the intended one.
+- The derived census oscillated between 3 and 6 across the week, tracking the rota rather than reality. Now one number per facility, taken from the thinnest day.
+- A fixture first name was changed from "Grace" to "Astrid": the no-hard-coding guard watches every fixture name, and "grace period" is a phrase credential-expiry code will legitimately want to use.
+
+**Next — phase 2: ingestion**
+
+Content-based detection, immutable landing by sha256, the robust reader (encoding ladder, delimiter sniff, header-position search, row repair), contracts, header mapping, quarantine.
+
+**Risks**
+
+- *Cleared:* reportlab 5.0.1 works and supports `invariant`, so PDFs are byte-reproducible.
+- *New:* the clean census works out at 3 residents per facility. That is the largest census ten staff can serve while meeting all three HPRD minimums on the thinnest day — arithmetic, not a typo, and the README says so. If it reads as implausible at judging, the fix is more staff in the fixture, not a looser rule.
+- *Carried (R6):* the clean set is compliant as data, but "raises nothing above INFO" cannot be confirmed until the rules exist. `make verify-clean` is the gate.
+- *Carried (R1):* schedule-PDF extraction against the judges' real file is still the highest-variance risk. The parametric generator is the mitigation — it can synthesize layouts I have not seen.
+
+---
+
 ## Phase 0 — Scaffold ✅
 
 **Done**
