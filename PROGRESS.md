@@ -4,6 +4,38 @@ Updated after each build phase. Format: done / next / risks.
 
 ---
 
+## Phases 7–9 — Front end, decisions loop, chaos deck ✅
+
+**Phase 7 — the front end**
+
+Nine screens, strict TypeScript, no UI kit.
+
+- **Ingest**: drag and drop, detected type per file, as-of date and pack, recent runs.
+- **Pipeline**: a React Flow canvas laid out with dagre from `/api/pipeline`. Node cards show rows in and out, rows held back, and flag counts by severity; edges animate while the run streams in over SSE and carry row counts. Clicking a step opens a drawer with its ports, its last-run numbers, and any error. "Replay last run" re-streams the stored log with nothing recomputed.
+- **Flags**: severity tabs with counts, category filter, cards with entity chips, and an evidence viewer that shows the source row with the column highlighted or the rendered PDF page with the bounding box drawn on it.
+- **People**: the roster with credential and finding counts, and a person page with the **evidence graph** — the person in the middle, every source record around them, each edge carrying the score that attached it. Clicking an edge opens the feature waterfall.
+- **Staffing, Expirations, Referrals**: the three client problems, each with its assumptions visible.
+- **Settings**: the 14 editable parameters with their ranges and shipped defaults, plus the decision log.
+
+**Phase 8 — the decisions loop**
+
+Decisions are recorded from the flag drawer, listed in Settings with their audit trail, and applied at the start of the next run. "Re-run with current decisions" is on the Pipeline page. Parameter edits are validated and written as overrides, so the pack's shipped values stay visible and one reset undoes everything.
+
+**Phase 9 — the chaos deck**
+
+**62 mutations, all passing. 58 of 58 P0 rules exercised.** Each breaks the clean sample in one specific way and asserts two things: what must be raised, and what must *not* be. The second half is the one that catches over-reaction — a system that panics about a renamed column header is as useless as one that misses a ghost employee.
+
+**Four real bugs the deck found**
+
+- **Two findings could share a flag id**, and the second was lost to a primary key violation. Content-based ids are what let a finding keep its identity between runs; the cost is that two code paths can reach the same identity within one run. They are now merged, which is the honest reading — that is the same finding said twice.
+- **The footnote parser read the whole page**, so shift tokens in the table above were swept into it and a 12-hour shift was priced at 8. It now reads only below the table.
+- **Two roster rows sharing an employee number** crashed the identity step on a duplicate key. The collision is itself a finding; the table now holds the first rather than neither.
+- **A blocked file still counted its source as present**, so a payroll export missing its hours column never reported the source as unusable.
+
+**Verified end to end** through a live server: upload the messy set, watch the run, and every endpoint the UI needs answers — 14 critical and 15 warning findings, person graphs with scored edges, all three views, and the exports.
+
+---
+
 ## Phase 6 — Views, API, and CLI ✅
 
 **Done**

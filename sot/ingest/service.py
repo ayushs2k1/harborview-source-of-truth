@@ -996,7 +996,10 @@ def _report_missing_sources(context: RunContext, result: IngestResult, pack: Pac
     expected = [str(role) for role in (pack.setting("required_roles", []) or [])]
     if not expected:
         return
-    present = {read.detection.role for read in result.reads}
+    # A role counts as present only if it produced records. A file that was detected
+    # but blocked - a missing required column, say - leaves that source unusable, and
+    # saying so once is more useful than leaving every dependent check unexplained.
+    present = {read.detection.role for read in result.reads if read.records}
     if result.schedules:
         present.add("schedule")
     if not present:

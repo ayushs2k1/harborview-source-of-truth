@@ -176,15 +176,36 @@ class FlagCollector:
     # -- finishing ---------------------------------------------------------
 
     def finalize(self) -> list[Flag]:
-        """Write the aggregate messages and return every flag in inbox order."""
+        """Write the aggregate messages and return every flag in inbox order.
+
+        Flags sharing an identity are merged. A flag id is deliberately content-based
+        so the same problem keeps its id between runs, and the cost of that is that
+        two code paths can reach the same identity within one run - which is the same
+        finding said twice, not two findings. Merging is the honest resolution, and it
+        also keeps the stored flags consistent with their primary key.
+        """
         for flag in self._aggregates.values():
             flag.occurrence_count = int(flag.params.get("count", 1))
         for flag in self._flags:
             if not flag.message:
                 spec = self.registry.get(flag.rule_code)
                 flag.message = format_message(spec.message, flag.params)
+
+        merged: dict[str, Flag] = {}
+        for flag in self._flags:
+            existing = merged.get(flag.flag_id)
+            if existing is None:
+                merged[flag.flag_id] = flag
+                continue
+            existing.occurrence_count += flag.occurrence_count
+            if flag.severity.rank < existing.severity.rank:
+                existing.severity = flag.severity
+            for item in flag.evidence:
+                if len(existing.evidence) < MAX_EVIDENCE and item not in existing.evidence:
+                    existing.evidence.append(item)
+
         return sorted(
-            self._flags,
+            merged.values(),
             key=lambda f: (f.severity.rank, f.rule_code, f.flag_id),
         )
 

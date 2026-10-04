@@ -54,11 +54,12 @@ demo: ## Ingest the messy sample set and write a report
 verify-clean: ## Assert the clean sample raises nothing above INFO at the pinned date
 	$(PY) -m sot ingest $(CLEAN_DIR) --as-of $(PINNED_AS_OF) --max-severity INFO
 
-test: ## Run the test suite
-	$(PY) -m pytest
+test: ## Run the test suite (without the chaos deck)
+	$(PY) -m pytest --ignore=tests/chaos
 
 chaos: ## Run the chaos deck and write the coverage report
-	$(PY) -m pytest -m chaos
+	$(PY) -m pytest tests/chaos -p no:randomly
+	@echo "Report: reports/chaos_coverage.md"
 
 lint: ## Lint Python and typecheck the web app
 	$(PY) -m ruff check sot tests scripts

@@ -5,6 +5,7 @@ import Expirations from './pages/Expirations'
 import Flags from './pages/Flags'
 import Ingest from './pages/Ingest'
 import People from './pages/People'
+import PersonDetail from './pages/PersonDetail'
 import Pipeline from './pages/Pipeline'
 import Referrals from './pages/Referrals'
 import Settings from './pages/Settings'
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="pipeline" element={<Pipeline />} />
         <Route path="flags" element={<Flags />} />
         <Route path="people" element={<People />} />
+        <Route path="people/:personId" element={<PersonDetail />} />
         <Route path="staffing" element={<Staffing />} />
         <Route path="expirations" element={<Expirations />} />
         <Route path="referrals" element={<Referrals />} />

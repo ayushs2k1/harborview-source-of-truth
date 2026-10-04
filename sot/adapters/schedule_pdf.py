@@ -302,7 +302,9 @@ def _assign(columns: Sequence[DayColumn], year: int) -> list[DayColumn]:
 # ---------------------------------------------------------------------------
 
 
-def _extract_tables(page: Any) -> tuple[list[list[str]], list[list[Any]], str, float] | None:
+def _extract_tables(
+    page: Any,
+) -> tuple[list[list[str]], list[list[Any]], str, float, float] | None:
     """Try the ruled grid, then the text layout.
 
     Returns the cells, their geometry, how it was done, and the y of the table's top
@@ -325,11 +327,13 @@ def _extract_tables(page: Any) -> tuple[list[list[str]], list[list[Any]], str, f
             if find_header_row(grid) is None:
                 continue
             geometry = [list(row.cells) for row in table.rows]
-            return (grid, geometry, method, float(table.bbox[1]))
+            return (grid, geometry, method, float(table.bbox[1]), float(table.bbox[3]))
     return None
 
 
-def _cluster_words(page: Any) -> tuple[list[list[str]], list[list[Any]], str, float] | None:
+def _cluster_words(
+    page: Any,
+) -> tuple[list[list[str]], list[list[Any]], str, float, float] | None:
     """Last resort: rebuild the table from where the words sit on the page.
 
     Used when the page has text but no structure a table finder can see - no rules,
@@ -398,7 +402,10 @@ def _cluster_words(page: Any) -> tuple[list[list[str]], list[list[Any]], str, fl
     if find_header_row(grid) is None:
         return None
     top = min((float(word["top"]) for word in header_line), default=0.0)
-    return (grid, geometry, EXTRACTION_WORDS, top)
+    bottom = max(
+        (float(box[3]) for row in geometry for box in row if box), default=float(page.height)
+    )
+    return (grid, geometry, EXTRACTION_WORDS, top, bottom)
 
 
 def _merge_wrapped_rows(
@@ -437,6 +444,23 @@ def _text_above(page: Any, table_top: float) -> str:
         return ""
     try:
         band = page.crop((0, 0, page.width, max(table_top - 1, 1)))
+        return (band.extract_text() or "").strip()
+    except Exception:
+        return ""
+
+
+def _text_below(page: Any, table_bottom: float) -> str:
+    """Whatever is printed below the table.
+
+    The footnote is read from here rather than from the whole page, because the page
+    also contains every shift in the table - and a pattern looking for shift tokens
+    before the words "are 8 hours" will happily sweep the rota itself into the
+    footnote and then price every shift wrongly.
+    """
+    try:
+        if table_bottom >= page.height - 1:
+            return ""
+        band = page.crop((0, min(table_bottom + 1, page.height - 1), page.width, page.height))
         return (band.extract_text() or "").strip()
     except Exception:
         return ""
@@ -662,7 +686,7 @@ def _read_page(
         )
         return page
 
-    grid, geometry, method, table_top = extracted
+    grid, geometry, method, table_top, table_bottom = extracted
     page.method = method
     page.heading_text = _text_above(raw_page, table_top)
     header_index = find_header_row(grid)
@@ -708,7 +732,7 @@ def _read_page(
             )
         )
 
-    page.footnote = parse_footnote(page.text)
+    page.footnote = parse_footnote(_text_below(raw_page, table_bottom) or page.text)
     if not page.footnote:
         result.findings.append(
             AdapterFinding(

@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from sot.api.routers import (
+    chaos,
     decisions,
     evidence,
     exports,
@@ -44,7 +45,18 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    for module in (health, runs, flags, persons, views, evidence, exports, decisions, pipeline):
+    for module in (
+        health,
+        runs,
+        flags,
+        persons,
+        views,
+        evidence,
+        exports,
+        decisions,
+        pipeline,
+        chaos,
+    ):
         app.include_router(module.router, prefix="/api")
 
     @app.exception_handler(Exception)

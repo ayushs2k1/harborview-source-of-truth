@@ -272,6 +272,17 @@ def _roles_requiring_credential(pack: Pack | None) -> set[str]:
 
 def person_rows(run_id: str, persons: Iterable[PersonRecord]) -> list[dict[str, Any]]:
     """Flatten people for the ``persons`` table."""
+    seen: set[str] = set()
+    unique: list[PersonRecord] = []
+    for person in sorted(persons, key=lambda item: item.person_id):
+        # Two roster rows sharing an employee number resolve to one person id. The
+        # collision is itself a finding (EMPLOYEE_ID_COLLISION); the table holds the
+        # first, because holding neither would lose both people.
+        if person.person_id in seen:
+            continue
+        seen.add(person.person_id)
+        unique.append(person)
+
     return [
         {
             "run_id": run_id,
@@ -287,5 +298,5 @@ def person_rows(run_id: str, persons: Iterable[PersonRecord]) -> list[dict[str, 
             "home_facility": person.facility_code,
             "primary_role": person.role_code,
         }
-        for person in sorted(persons, key=lambda item: item.person_id)
+        for person in unique
     ]
