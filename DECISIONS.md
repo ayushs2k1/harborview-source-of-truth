@@ -175,3 +175,57 @@ it quietly continues the page before it - or a page whose title names a site we 
 know, in which case the facility has to be inferred from the staff listed and the
 assumption reported. They are told apart by whether anything is printed above the
 table, which is the only signal that actually distinguishes them.
+
+## Hand-set match weights, not a model
+
+Each feature contributes evidence for or against two records being the same person,
+the evidence is summed, and the total falls into one of three bands: link it, ask a
+human, or leave it alone. The weights live in the pack.
+
+Deliberately not machine learning. There is no labelled training data for this client,
+the cost of a wrong automatic link is somebody being paid or rostered as the wrong
+person, and a judge is entitled to ask why any particular link was made. Hand-set
+weights answer that in one sentence per feature. A model would answer it with a number
+nobody can argue with, which is worse.
+
+Every link stores the features that produced it - what was compared, at what level,
+for what weight - so the person page can show the whole derivation.
+
+## Three steps, in order of how wrong each is willing to be
+
+Human decisions first: somebody already answered this and does not get a second
+opinion. Then the credential number, which is issued to exactly one person and settles
+the question outright - which is what lets a credential under a previous surname still
+link, with the name difference reported rather than the link refused. Only what is
+left reaches the weighted matcher.
+
+## Two records claiming one slot
+
+A person has one payroll row per period, role and site, and appears once on a rota
+page. Two records claiming the same slot is either a look-alike that belongs to
+somebody else, or a genuine duplicate. The first is reassigned when there is another
+candidate good enough on its own; the second stays linked and is flagged, because a
+duplicated payment is the finding, not an inconvenience to route around.
+
+The slot is namespaced by source. Being paid for a week and being on that week's rota
+are the two halves of a match, not two claims on one slot.
+
+## Unmatched records become people
+
+A nurse who is paid but is in no other system is the single most interesting thing
+this system can find, and she only stays visible if she has somewhere to be. Every
+unmatched record becomes a provisional person, grouped by name, role and site so the
+same unknown person appearing in payroll and on the rota is one person rather than two.
+
+## A missing source is one finding
+
+Ingesting payroll with no roster would otherwise flag every row as a possible ghost
+employee. That is true and useless. The spec has no code for an absent source, so
+`SOURCE_MISSING` was added, with the expected sources declared in the pack - the same
+principle the spec already applies to sources that cover different periods.
+
+## Precision over recall
+
+A missed link becomes a visible flag that a human resolves in seconds. A wrong link
+quietly pays the wrong person and is never noticed. So the bands are set to refuse
+rather than guess, and the measured target is precision.

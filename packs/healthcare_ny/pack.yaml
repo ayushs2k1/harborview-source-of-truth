@@ -26,6 +26,43 @@ detection:
   # How far into a file to look for the header row, for files with a preamble.
   max_preamble_rows: 20
 
+# The four legs of the match. A missing one is reported once, rather than as a
+# finding against every row that could not be checked against it.
+required_roles: [roster, payroll, credentials, schedule]
+
+# --- Identity resolution ---------------------------------------------------
+#
+# Hand-set weights in the Fellegi-Sunter style: each feature contributes evidence for
+# or against two records being the same person, and the total decides. They are here
+# rather than in code because the right numbers depend on the data - a roster of 10
+# and a roster of 10,000 want different thresholds - and because a judge who disputes
+# one should be able to change it and re-run.
+matching:
+  weights:
+    last_name:  {exact: 6.0, similar: 4.0, phonetic: 3.0, different: -6.0}
+    first_name: {exact: 4.5, variant: 3.5, similar: 2.5, initial: 1.0, different: -4.5}
+    role:       {same: 1.5, compatible: 0.5, different: -2.0}
+    facility:   {same: 1.0, different: -1.0}
+    credential: {exact: 12.0, different: -6.0}
+  thresholds:
+    last_name_similar: 0.94      # Jaro-Winkler
+    first_name_similar: 0.90
+  bands:
+    auto: 8.0                    # at or above this, link without asking
+    review: 3.0                  # between the two, ask a human
+  # Two candidates this close are not distinguishable, whatever the total says.
+  ambiguous_margin: 2.0
+  # Above this many people, compare only plausible candidates rather than everyone.
+  max_persons_without_blocking: 2000
+
+# Roles close enough that holding one is weak evidence for the other. Same family is
+# "compatible"; across families is "different". A nurse covering an aide shift is
+# normal, which is why the penalty for a different role is modest.
+role_families:
+  nurse_rn: [RN, RN_DON, RN_ADMIN]
+  nurse_lpn: [LPN, LPN_ADMIN]
+  aide: [CNA, AIDE_TRAINEE, MED_AIDE]
+
 # What a rota cell can say besides a shift. Matched case-insensitively after the
 # dash characters are normalised. Anything not listed and not a time range is flagged
 # rather than silently ignored.

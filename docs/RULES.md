@@ -2,7 +2,7 @@
 
 Generated from the rule registry by `make docs`. Do not edit by hand.
 
-81 rules, 36 with an evaluator so far.
+82 rules, 49 with an evaluator so far.
 
 Severity means: **BLOCKER** a file or page could not be processed, and only that one is affected · **CRITICAL** compliance, safety, or money is at risk · **WARNING** needs human judgement · **INFO** auto-fixed or informational, aggregated so the inbox stays readable.
 
@@ -10,22 +10,19 @@ Severity means: **BLOCKER** a file or page could not be processed, and only that
 
 | Priority | Rules | With an evaluator |
 |---|---|---|
-| P0 | 58 | 25 |
-| P1 | 22 | 11 |
+| P0 | 59 | 37 |
+| P1 | 22 | 12 |
 | P2 | 1 | 0 |
 
-P0 rules still to implement: 33
+P0 rules still to implement: 22
 
 ```
 ACTIVITY_BEFORE_HIRE                COVERAGE_GAP_BETWEEN_SOURCES        CREDENTIAL_EXPIRED                  CREDENTIAL_EXPIRING
-DAILY_HOURS_OVER_CAP                DUPLICATE_PAY_PERIOD                DUPLICATE_PERSON_HR                 EMPLOYEE_ID_COLLISION
-FACILITY_CONFLICT                   HOURS_EXCESSIVE_WEEK                HOURS_VARIANCE                      HR_LICENSE_EXPIRY_STALE
-LICENSED_ROLE_NO_CREDENTIAL         LICENSE_NOT_IN_SERVICE              LICENSE_NUMBER_SHARED               MATCH_AMBIGUOUS
-MATCH_REVIEW                        NAME_MISMATCH_LICENSE               OVERLAPPING_SHIFTS                  PAID_NOT_SCHEDULED
+DAILY_HOURS_OVER_CAP                FACILITY_CONFLICT                   HOURS_EXCESSIVE_WEEK                HOURS_VARIANCE
+HR_LICENSE_EXPIRY_STALE             LICENSED_ROLE_NO_CREDENTIAL         OVERLAPPING_SHIFTS                  PAID_NOT_SCHEDULED
 PAYROLL_PERIOD_INVALID              PBJ_TRACEABILITY_VARIANCE           PBJ_UNALLOCATED_HOURS               RN_8H_COVERAGE_GAP
 ROLE_CONFLICT                       ROLE_EXCEEDS_LICENSE                SCHEDULED_AFTER_EXPIRY              SCHEDULED_NOT_PAID
-UNMATCHED_LICENSE                   UNMATCHED_PAYROLL                   UNMATCHED_SCHEDULE                  VERIFICATION_STALE
-WORKED_AFTER_EXPIRY
+VERIFICATION_STALE                  WORKED_AFTER_EXPIRY
 ```
 
 ## File and structure
@@ -37,6 +34,7 @@ WORKED_AFTER_EXPIRY
 | `NODE_FAILED` | BLOCKER | P0 | DATA_STEWARD | A pipeline step raised an unexpected error; downstream steps ran degraded |
 | `HEADER_AMBIGUOUS` | WARNING | P1 | DATA_STEWARD | Two columns map to one field |
 | `ROW_FIELD_COUNT_MISMATCH` | WARNING | P0 | DATA_STEWARD | Row quarantined |
+| `SOURCE_MISSING` | WARNING | P0 | DATA_STEWARD | A source the pack expects was not supplied; checks needing it return unknown |
 | `VOLUME_DROP` *(pending)* | WARNING | P2 | DATA_STEWARD | Row count fell more than 30% vs the previous run of the same source |
 | `ENCODING_FALLBACK` | INFO | P1 | DATA_STEWARD | File decoded with a fallback encoding |
 | `FILE_DUPLICATE` | INFO | P0 | DATA_STEWARD | Same file seen before; not double counted |
@@ -71,18 +69,18 @@ WORKED_AFTER_EXPIRY
 
 | Code | Severity | Pri | Owner | Meaning |
 |---|---|---|---|---|
-| `EMPLOYEE_ID_COLLISION` *(pending)* | CRITICAL | P0 | HR | One ID, two different people |
-| `LICENSE_NUMBER_SHARED` *(pending)* | CRITICAL | P0 | HR | One credential number on two people |
-| `UNMATCHED_PAYROLL` *(pending)* | CRITICAL | P0 | PAYROLL | Paid but not in HR: a ghost-employee red flag, or unrecorded agency staff |
-| `DUPLICATE_PERSON_HR` *(pending)* | WARNING | P0 | HR | Same person under two HR IDs |
+| `EMPLOYEE_ID_COLLISION` | CRITICAL | P0 | HR | One ID, two different people |
+| `LICENSE_NUMBER_SHARED` | CRITICAL | P0 | HR | One credential number on two people |
+| `UNMATCHED_PAYROLL` | CRITICAL | P0 | PAYROLL | Paid but not in HR: a ghost-employee red flag, or unrecorded agency staff |
+| `DUPLICATE_PERSON_HR` | WARNING | P0 | HR | Same person under two HR IDs |
 | `DUPLICATE_SCHEDULE_ROW` | WARNING | P1 | DON | Person listed twice on one page |
-| `LICENSE_NOT_IN_SERVICE` *(pending)* | WARNING† | P0 | HR | HR lists a license number the verification service doesn't have |
-| `MATCH_AMBIGUOUS` *(pending)* | WARNING | P0 | DATA_STEWARD | Top two candidates too close |
-| `MATCH_REVIEW` *(pending)* | WARNING | P0 | DATA_STEWARD | Score in the review band |
-| `NAME_MISMATCH_LICENSE` *(pending)* | WARNING | P0 | HR | Linked by number but names differ (maiden name?) |
-| `SHARED_PHONE` *(pending)* | WARNING | P1 | HR | Two people share a phone number |
-| `UNMATCHED_LICENSE` *(pending)* | WARNING | P0 | HR | License row matches no person |
-| `UNMATCHED_SCHEDULE` *(pending)* | WARNING† | P0 | DON | Scheduled but not in HR |
+| `LICENSE_NOT_IN_SERVICE` | WARNING† | P0 | HR | HR lists a license number the verification service doesn't have |
+| `MATCH_AMBIGUOUS` | WARNING | P0 | DATA_STEWARD | Top two candidates too close |
+| `MATCH_REVIEW` | WARNING | P0 | DATA_STEWARD | Score in the review band |
+| `NAME_MISMATCH_LICENSE` | WARNING | P0 | HR | Linked by number but names differ (maiden name?) |
+| `SHARED_PHONE` | WARNING | P1 | HR | Two people share a phone number |
+| `UNMATCHED_LICENSE` | WARNING | P0 | HR | License row matches no person |
+| `UNMATCHED_SCHEDULE` | WARNING† | P0 | DON | Scheduled but not in HR |
 
 † Severity depends on context:
 
@@ -93,7 +91,7 @@ WORKED_AFTER_EXPIRY
 
 | Code | Severity | Pri | Owner | Meaning |
 |---|---|---|---|---|
-| `DUPLICATE_PAY_PERIOD` *(pending)* | CRITICAL | P0 | PAYROLL | Possible double pay |
+| `DUPLICATE_PAY_PERIOD` | CRITICAL | P0 | PAYROLL | Possible double pay |
 | `LICENSED_ROLE_NO_CREDENTIAL` *(pending)* | CRITICAL | P0 | HR | Licensed role with no credential |
 | `OVERLAPPING_SHIFTS` *(pending)* | CRITICAL | P0 | DON | Same person in two places at once |
 | `ROLE_EXCEEDS_LICENSE` *(pending)* | CRITICAL | P0 | DON | Any role claim is above what the credential allows: scope of practice, and the wrong PBJ code |
@@ -330,6 +328,12 @@ What each rule says, with the values filled in at the time.
 > Row {row_index} of {filename} has {found} fields where {expected} were expected, and could not be repaired. It has been quarantined, not dropped.
 
 *Action:* Check the row in the source file; a stray or missing delimiter is the usual cause.
+
+**`SOURCE_MISSING`** — A source is missing
+
+> No {role} data was supplied, so {consequence} Checks that need it are reported as unknown rather than guessed at.
+
+*Action:* Upload the missing export and re-run.
 
 **`VOLUME_DROP`** — Far fewer rows than last time
 

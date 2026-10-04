@@ -9,6 +9,8 @@ name: Trucking
 version: 0.1.0
 description: Driver rosters, dispatch, and credential expiry. Reuse proof for the engine.
 
+required_roles: [roster, payroll, credentials, schedule]
+
 as_of: today
 week_start: monday
 date_order_default: MDY

@@ -232,6 +232,19 @@ FILE_RULES = [
         OWN.DATA_STEWARD,
     ),
     _rule(
+        "SOURCE_MISSING",
+        S.WARNING,
+        C.FILE,
+        "P0",
+        "A source the pack expects was not supplied; checks needing it return unknown",
+        "A source is missing",
+        "No {role} data was supplied, so {consequence} Checks that need it are reported "
+        "as unknown rather than guessed at.",
+        "Upload the missing export and re-run.",
+        OWN.DATA_STEWARD,
+        implemented=True,
+    ),
+    _rule(
         "NODE_FAILED",
         S.BLOCKER,
         C.FILE,
@@ -453,6 +466,7 @@ IDENTITY_RULES = [
         "review band {low}-{high}), but not confidently enough to link automatically.",
         "Accept or reject the match. The decision is remembered for future runs.",
         OWN.DATA_STEWARD,
+        implemented=True,
     ),
     _rule(
         "MATCH_AMBIGUOUS",
@@ -465,6 +479,7 @@ IDENTITY_RULES = [
         "and {second_name} (score {second_score}). It has not been linked to either.",
         "Pick the right person, or reject both if it is somebody else.",
         OWN.DATA_STEWARD,
+        implemented=True,
     ),
     _rule(
         "UNMATCHED_PAYROLL",
@@ -478,6 +493,7 @@ IDENTITY_RULES = [
         "Confirm whether this is agency staff, a leaver, or a payment that should not "
         "have been made.",
         OWN.PAYROLL,
+        implemented=True,
     ),
     _rule(
         "UNMATCHED_SCHEDULE",
@@ -492,6 +508,7 @@ IDENTITY_RULES = [
         OWN.DON,
         severity_fn=_severity_unmatched_schedule,
         severity_note="CRITICAL when the role requires a credential, otherwise WARNING.",
+        implemented=True,
     ),
     _rule(
         "UNMATCHED_LICENSE",
@@ -504,6 +521,7 @@ IDENTITY_RULES = [
         "roster. A former employee is the usual reason.",
         "Confirm the holder has left, or add them to the roster.",
         OWN.HR,
+        implemented=True,
     ),
     _rule(
         "LICENSE_NOT_IN_SERVICE",
@@ -518,6 +536,7 @@ IDENTITY_RULES = [
         OWN.HR,
         severity_fn=_severity_license_not_in_service,
         severity_note="CRITICAL when the person worked a licensed role in the period.",
+        implemented=True,
     ),
     _rule(
         "DUPLICATE_PERSON_HR",
@@ -530,6 +549,7 @@ IDENTITY_RULES = [
         "sharing {shared}. A rehire is the usual reason.",
         "Merge the records, or confirm they are two different people.",
         OWN.HR,
+        implemented=True,
     ),
     _rule(
         "EMPLOYEE_ID_COLLISION",
@@ -542,6 +562,7 @@ IDENTITY_RULES = [
         "Every figure attributed to that number is unreliable.",
         "Issue a new number to one of them and re-export.",
         OWN.HR,
+        implemented=True,
     ),
     _rule(
         "LICENSE_NUMBER_SHARED",
@@ -554,6 +575,7 @@ IDENTITY_RULES = [
         "At most one of them is licensed.",
         "Verify with the issuing service and correct the record for whoever is wrong.",
         OWN.HR,
+        implemented=True,
     ),
     _rule(
         "NAME_MISMATCH_LICENSE",
@@ -566,6 +588,7 @@ IDENTITY_RULES = [
         "{name_on_credential!r}. A name change is the usual reason.",
         "Confirm the name change and update whichever record is out of date.",
         OWN.HR,
+        implemented=True,
     ),
     _rule(
         "DUPLICATE_SCHEDULE_ROW",
@@ -591,6 +614,7 @@ IDENTITY_RULES = [
         "members, or one record copied from the other.",
         "Confirm they are two people and correct the number if not.",
         OWN.HR,
+        implemented=True,
     ),
 ]
 
@@ -721,6 +745,7 @@ CROSS_SOURCE_RULES = [
         "{period_start} to {period_end} ({rows}), totalling {total_hours} hours.",
         "Confirm whether this is a correction or a duplicate payment.",
         OWN.PAYROLL,
+        implemented=True,
     ),
     _rule(
         "PAYROLL_PERIOD_INVALID",

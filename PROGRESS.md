@@ -4,6 +4,59 @@ Updated after each build phase. Format: done / next / risks.
 
 ---
 
+## Phase 4 — Identity resolution ✅
+
+**Done**
+
+- **Weighted scoring** in the Fellegi-Sunter style, with every weight, threshold and band in the pack rather than in code. The spec's worked example scores exactly 12.0 and links automatically, as documented.
+- **Five feature comparisons** — family name, given name, role, site, credential number — each returning a level, a weight, and what it compared, so a link can explain itself.
+- **Resolution in the spec's order**: human decisions, then the deterministic credential anchor, then scoring. Each step is more willing to be wrong than the one before it, so each only sees what the previous could not settle.
+- **Blocking** for large rosters, on family-name prefix, phonetic code, and site plus role, chosen so a true match survives at least one key.
+- **One-to-one constraints** with reassignment: two records claiming one slot are either a look-alike that belongs to somebody else, or a genuine duplicate. The first is reassigned, the second stays linked and is flagged.
+- **Provisional people** for everything unmatched, grouped so one unknown person appearing in two sources becomes one person rather than two.
+- **Roster self-checks**: one employee number on two people, one person under two numbers, a shared phone, a shared credential.
+- **Decision memory** read and applied: an accepted match overrides the score, a rejected pair is never linked.
+- **A seeded 60-person benchmark** with known ground truth, and `scripts/gen_identity_benchmark.py` to regenerate it.
+- **49 of 82 rules now have evaluators**, up from 36. P0 remaining: 22, down from 33.
+- **563 tests passing** (65 new), ruff clean.
+
+**Measured, not asserted**
+
+On the benchmark — 60 people, 4 weeks, 520 records, names corrupted the way real exports corrupt them:
+
+| | |
+|---|---|
+| Automatic links | 510 of 520 |
+| **Precision** | **1.000** (spec target: ≥ 0.98) |
+| Recall | 0.981 |
+| Held back for a human | 10 — six for review, four too close to call |
+
+Every record is either linked or flagged. Nothing is silently dropped.
+
+**Two bugs found, one by the benchmark**
+
+- **The uniqueness scope was not namespaced by source.** Being paid for a week and being on that week's rota are the two halves of a match, not two claims on one slot — but the scope could not tell them apart, so a correctly matched person was reported as a duplicate of themselves. It produced **205 spurious duplicate findings** on the benchmark and cost 1.2 points of precision. Fixing it took precision from 0.988 to 1.000. Ten people were never going to surface this; that is what the larger set is for.
+- **An unmatched record named itself by its payroll ID** rather than by the person on it, so the ghost-employee message read "pays 'P-3012'" instead of naming them.
+
+**A gap in the spec's rule catalog, filled**
+
+Ingesting payroll with no roster flagged *every* row as a possible ghost employee. That is true, and useless: a roster nobody uploaded is one problem, not two hundred. The spec's own principle for mismatched coverage — "raise one flag instead of flagging every person" — applies, but there was no code for a missing source. Added `SOURCE_MISSING` (WARNING, P0), with the four expected sources declared in the pack. Unmatched records still become provisional people, so the data stays usable; they are just not each reported as unknown.
+
+**Also**
+
+Duplicate rota rows moved from the PDF adapter to resolution. The adapter could only compare printed text; by resolution a shortened given name and its full form are known to be one person.
+
+**Next — phase 5: ledger, golden records, the four-way match, and the remaining rules**
+
+The largest phase. Claims with full locators, survivorship from the authority matrix, person-week and person-day tables, and the 22 P0 rules still outstanding.
+
+**Risks**
+
+- *New:* precision is 1.000 on synthetic data whose corruptions I chose. The real test is the judges' file, and the review band exists precisely so borderline cases become human decisions rather than silent errors.
+- *Carried (R6):* the clean set still raises nothing above INFO. Phase 5 adds the domain rules that could change that, and `make verify-clean` is the gate.
+
+---
+
 ## Phase 3 — Normalizers and the PDF adapter ✅
 
 **Done**

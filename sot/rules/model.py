@@ -149,6 +149,27 @@ class Evidence:
         return "|".join(parts)
 
 
+@dataclass(frozen=True)
+class Finding:
+    """Something a pipeline step wants reported.
+
+    A rule code plus the values its message needs. Steps return these rather than
+    building flags themselves, so they can be tested without the rule machinery and
+    the decision about severity stays in one place.
+    """
+
+    code: str
+    params: dict[str, Any] = field(default_factory=dict)
+    page: int | None = None
+    row_index: int | None = None
+    column: str | None = None
+    raw_value: str | None = None
+    bbox: tuple[float, float, float, float] | None = None
+    entities: tuple[Entity, ...] = ()
+    #: Identity of the finding, when the default is not specific enough.
+    key_parts: tuple[str, ...] = ()
+
+
 @dataclass
 class Flag:
     """One finding, with everything a human needs to act on it."""

@@ -26,6 +26,30 @@ from sot.rules.registry import RuleRegistry
 MAX_EVIDENCE = 5
 
 
+#: An ISO date sitting in a message parameter.
+_ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def humanize(value: Any) -> Any:
+    """Render a value the way a flag message should read.
+
+    A date becomes "Mar 3, 2027" rather than its ISO form. These messages are read
+    by a director of nursing between shifts, not by a machine, and the ISO form
+    makes every sentence read like a log line.
+    """
+    from datetime import date as date_type
+
+    if isinstance(value, date_type):
+        return f"{value:%b} {value.day}, {value.year}"
+    if isinstance(value, str) and _ISO_DATE.match(value):
+        try:
+            parsed = date_type.fromisoformat(value)
+        except ValueError:
+            return value
+        return f"{parsed:%b} {parsed.day}, {parsed.year}"
+    return value
+
+
 class _SafeDict(dict):
     """Leaves unknown placeholders visible instead of raising.
 
@@ -39,6 +63,7 @@ class _SafeDict(dict):
 
 def format_message(template: str, params: dict[str, Any]) -> str:
     """Fill a message template as far as the given values allow."""
+    params = {key: humanize(value) for key, value in params.items()}
     try:
         return template.format_map(_SafeDict(params))
     except (ValueError, TypeError, IndexError, KeyError):

@@ -68,6 +68,7 @@ class IngestResult:
     record_count: int = 0
     quarantined_count: int = 0
     segment_count: int = 0
+    resolution: Any = None
     schedules: list[Any] = field(default_factory=list)
     context: RunContext | None = None
 
@@ -137,6 +138,8 @@ def ingest_paths(
     landed = _intake(context, db, targets, result, overrides, pack)
     _read_sources(context, db, landed, result, pack)
     _read_schedules(context, db, landed, result, pack)
+    _resolve_identities(context, db, result, pack)
+    _report_missing_sources(context, result, pack)
 
     result.status = context.finish()
     return result
@@ -834,4 +837,161 @@ def _raise_adapter_findings(
             evidence=evidence,
             key_parts=(item.file_id, *key_parts),
             node_id=node_id,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Identity
+# ---------------------------------------------------------------------------
+
+
+def _records_for_role(result: IngestResult, role: str) -> list[dict[str, Any]]:
+    """Every standardized record of one source role, in a stable order."""
+    records = [
+        record for read in result.reads if read.detection.role == role for record in read.records
+    ]
+    return sorted(records, key=lambda item: (item["file_id"], item["row_index"]))
+
+
+def _resolve_identities(
+    context: RunContext, db: Database, result: IngestResult, pack: Pack
+) -> None:
+    """Work out who is who, and attach every record to a person."""
+    from sot.decisions.store import load_decisions
+    from sot.resolve.assign import check_credentials_in_service, resolve
+    from sot.resolve.build import (
+        build_credential_mentions,
+        build_payroll_mentions,
+        build_persons,
+        build_schedule_mentions,
+        person_rows,
+    )
+    from sot.resolve.scoring import MatchConfig
+
+    roster = _records_for_role(result, "roster")
+    payroll = _records_for_role(result, "payroll")
+    credentials = _records_for_role(result, "credentials")
+    segments = [segment for extract in result.schedules for segment in extract.segments]
+    if not roster and not payroll and not credentials and not segments:
+        return
+
+    config = MatchConfig.from_pack(pack)
+    decisions = load_decisions(db)
+
+    with context.node("resolve", "Identity", "resolve") as node:
+        persons = build_persons(roster, pack)
+        mentions = [
+            *build_payroll_mentions(payroll),
+            *build_credential_mentions(credentials),
+            *build_schedule_mentions(segments, pack),
+        ]
+        node.rows_in = len(mentions)
+
+        resolution = resolve(
+            persons, mentions, config, decisions=decisions, roster_supplied=bool(roster)
+        )
+        result.resolution = resolution
+        node.rows_out = len(resolution.links)
+
+        service_keys = {
+            (mention.credential_key or "").upper()
+            for mention in mentions
+            if mention.source_role == "credentials" and mention.credential_key
+        }
+        resolution.findings.extend(check_credentials_in_service(persons, service_keys))
+
+        db.insert_rows("persons", person_rows(context.run_id, resolution.persons))
+        db.insert_rows("links", [link.as_row(context.run_id) for link in resolution.links])
+        _attach_person_ids(db, context.run_id, resolution, mentions)
+        _raise_resolution_findings(context, resolution, "resolve")
+
+        context.progress("resolve", persons=len(resolution.persons), links=len(resolution.links))
+
+
+def _attach_person_ids(db: Database, run_id: str, resolution: Any, mentions: Sequence[Any]) -> None:
+    """Write the resolved person back onto the records it came from."""
+    by_record = {link.record_id: link.person_id for link in resolution.links}
+    by_id = {mention.record_id: mention for mention in mentions}
+
+    for record_id, person_id in sorted(by_record.items()):
+        mention = by_id.get(record_id)
+        if mention is None:
+            continue
+        if mention.source_role == "schedule":
+            for segment_id in mention.extra.get("segment_ids", ()):
+                db.execute(
+                    "UPDATE shift_segments SET person_id = ? WHERE run_id = ? AND segment_id = ?",
+                    [person_id, run_id, segment_id],
+                )
+        else:
+            db.execute(
+                "UPDATE std_records SET person_id = ? WHERE run_id = ? AND record_id = ?",
+                [person_id, run_id, record_id],
+            )
+
+    for person in resolution.persons:
+        if person.record_id:
+            db.execute(
+                "UPDATE std_records SET person_id = ? WHERE run_id = ? AND record_id = ?",
+                [person.person_id, run_id, person.record_id],
+            )
+
+
+def _raise_resolution_findings(context: RunContext, resolution: Any, node_id: str) -> None:
+    """Turn resolution findings into flags."""
+    for finding in resolution.findings:
+        context.flags.raise_flag(
+            finding.code,
+            dict(finding.params),
+            entities=list(finding.entities),
+            evidence=[
+                Evidence(
+                    row_index=finding.row_index,
+                    page=finding.page,
+                    column_name=finding.column,
+                    raw_value=finding.raw_value,
+                )
+            ]
+            if (finding.row_index or finding.page or finding.raw_value)
+            else [],
+            key_parts=finding.key_parts or (finding.code,),
+            node_id=node_id,
+        )
+
+
+#: What is lost when a source is absent, for the message.
+_MISSING_CONSEQUENCE = {
+    "roster": "nobody can be confirmed as employed and every other source stands alone.",
+    "payroll": "no paid hours can be compared against the rota.",
+    "credentials": "no credential can be verified against the issuing service.",
+    "schedule": "there is no record of who was rostered, so paid hours cannot be placed on a day.",
+}
+
+
+def _report_missing_sources(context: RunContext, result: IngestResult, pack: Pack) -> None:
+    """Report a source nobody supplied, once.
+
+    The alternative is a finding against every row that could not be checked against
+    it, which buries the one fact that explains all of them.
+    """
+    expected = [str(role) for role in (pack.setting("required_roles", []) or [])]
+    if not expected:
+        return
+    present = {read.detection.role for read in result.reads}
+    if result.schedules:
+        present.add("schedule")
+    if not present:
+        return  # nothing was read at all; the file-level flags already say so
+
+    for role in expected:
+        if role in present:
+            continue
+        context.flags.raise_flag(
+            "SOURCE_MISSING",
+            {
+                "role": role,
+                "consequence": _MISSING_CONSEQUENCE.get(role, "some checks cannot run."),
+            },
+            key_parts=(role,),
+            node_id="intake",
         )

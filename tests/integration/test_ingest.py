@@ -45,6 +45,20 @@ def run(tmp_path: Path):
     database.close()
 
 
+def reading_problems(result) -> list[str]:
+    """Anything above INFO that came from reading the files.
+
+    A fixture of one file legitimately reports the three sources nobody supplied, and
+    every row in it as belonging to nobody - which is true, and not what a test about
+    the CSV reader is asking.
+    """
+    return sorted(
+        flag.rule_code
+        for flag in result.flags_above_info()
+        if flag.category.value in {"FILE", "FORMAT"} and flag.rule_code != "SOURCE_MISSING"
+    )
+
+
 def records_of(result, source: str) -> list[dict]:
     import json
 
@@ -111,7 +125,7 @@ def test_renamed_headers_change_nothing(run, make_files):
     base = run(make_files({"a.csv": PAYROLL}, "base"))
     other = run(make_files({"a.csv": renamed}, "renamed"))
     assert records_of(base, "payroll") == records_of(other, "payroll")
-    assert not other.flags_above_info()
+    assert reading_problems(other) == []
 
 
 def test_reordered_columns_change_nothing(run, make_files):
@@ -173,7 +187,7 @@ def test_a_bom_and_windows_line_endings_change_nothing(run, make_files):
     base = run(make_files({"a.csv": PAYROLL}, "base"))
     other = run(make_files({"a.csv": PAYROLL.replace("\n", "\r\n").encode("utf-8-sig")}, "crlf"))
     assert records_of(base, "payroll") == records_of(other, "payroll")
-    assert not other.flags_above_info()
+    assert reading_problems(other) == []
 
 
 def test_a_latin1_file_keeps_its_accents(run, make_files):
@@ -270,7 +284,7 @@ def test_a_preamble_above_the_header_is_skipped(run, make_files):
     text = "Harborview Care Group\nGenerated 2026-09-21\n\n" + PAYROLL
     result = run(make_files({"a.csv": text}))
     assert len(records_of(result, "payroll")) == 2
-    assert not result.flags_above_info()
+    assert reading_problems(result) == []
 
 
 def test_a_type_override_turns_an_unknown_file_into_a_specific_problem(run, make_files):
@@ -357,3 +371,19 @@ def test_a_landed_file_is_stored_under_its_own_hash(run, make_files):
     assert landed.stored_path.exists()
     assert landed.sha256 in str(landed.stored_path)
     assert landed.stored_path.read_bytes() == PAYROLL.encode()
+
+
+def test_a_source_nobody_supplied_is_reported_once(run, make_files):
+    """Not once per row. A roster nobody uploaded is one problem, and flagging every
+    payroll row as a ghost employee would bury the fact that explains all of them."""
+    result = run(make_files({"payroll.csv": PAYROLL}))
+    missing = [flag for flag in result.flags if flag.rule_code == "SOURCE_MISSING"]
+    assert sorted(flag.params["role"] for flag in missing) == ["credentials", "roster", "schedule"]
+    assert "UNMATCHED_PAYROLL" not in result.codes()
+
+
+def test_records_without_a_roster_are_still_kept_as_people(run, make_files):
+    """The data stays usable even when there is nothing to match it against."""
+    result = run(make_files({"payroll.csv": PAYROLL}))
+    assert len(result.resolution.persons) == 2
+    assert all(person.status == "provisional" for person in result.resolution.persons)

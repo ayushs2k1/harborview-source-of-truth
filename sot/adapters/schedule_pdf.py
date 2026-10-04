@@ -821,12 +821,13 @@ def _emit_page(
     codes: Mapping[str, frozenset[str]],
     period_end: date | None,
 ) -> None:
-    """Turn one page's cells into stored cells and shift segments."""
-    seen_staff: dict[str, int] = {}
+    """Turn one page's cells into stored cells and shift segments.
 
+    Two rows for the same person on one page is a finding, but identity resolution
+    raises it rather than this does: by then a shortened given name and its full form
+    are known to be one person, which comparing the printed text cannot see.
+    """
     for row in page.rows:
-        key = name_key(row.staff)
-        seen_staff[key] = seen_staff.get(key, 0) + 1
         role_code = roles.resolve(row.role) if roles and row.role else None
 
         parses: list[tuple[DayColumn, CellParse | None, str | None, str, Any]] = []
@@ -896,22 +897,6 @@ def _emit_page(
                 role_code,
                 pto_hours,
                 period_end,
-            )
-
-    for key, count in sorted(seen_staff.items()):
-        if count > 1:
-            display = next(row.staff for row in page.rows if name_key(row.staff) == key)
-            result.findings.append(
-                AdapterFinding(
-                    "DUPLICATE_SCHEDULE_ROW",
-                    {
-                        "display_name": display,
-                        "facility": page.facility_code or f"page {page.number}",
-                        "count": count,
-                    },
-                    page=page.number,
-                    key_parts=(str(page.number), key),
-                )
             )
 
 
