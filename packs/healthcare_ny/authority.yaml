@@ -1,0 +1,61 @@
+# Which source wins, per attribute.
+#
+# The ledger keeps every value every source gave us. This decides only which one the
+# golden record *displays* - the losing claims stay queryable beside the winner, and a
+# disagreement is reported whichever way it is resolved.
+#
+# Ordered by source role rather than by the pack's own source names, so a pack whose
+# roster is called "drivers" reuses this file's shape unchanged.
+
+# Applied when an attribute is not listed below.
+default: [roster, credentials, payroll, schedule]
+
+# Tie-breaks applied in order after source authority:
+#   observed_on  - the later observation wins; a credential verified last week beats
+#                  the same field copied into HR two years ago
+#   completeness - a populated value beats an empty one
+#   claim_id     - a stable hash, so the result never depends on read order
+tie_breakers: [observed_on, completeness, claim_id]
+
+attributes:
+  # Employment. HR is the system of record for who works here.
+  legal_name:               [roster, credentials, payroll, schedule]
+  employee_id:              [roster]
+  hire_date:                [roster]
+  termination_date:         [roster]
+  employment_status:        [roster]
+  phone:                    [roster]
+  email:                    [roster]
+  home_facility:            [roster]
+  job_title:                [roster]
+
+  # Credentials. The verification service is authoritative over HR's copy, which is
+  # the whole reason the two are compared.
+  credential_number:        [credentials, roster]
+  credential_type:          [credentials, roster]
+  credential_expires_on:    [credentials, roster]
+  credential_last_verified: [credentials]
+  credential_issued_on:     [credentials]
+  credential_status:        [credentials]
+  name_on_credential:       [credentials]
+
+  # Money. Only payroll knows what was paid.
+  paid_hours:               [payroll]
+  pay_period_start:         [payroll]
+  pay_period_end:           [payroll]
+  paid_role:                [payroll]
+  paid_facility:            [payroll]
+
+  # Work. Only the rota knows where somebody actually was.
+  worked_facility:          [schedule]
+  worked_role:              [schedule]
+
+# Facility and role disagreements are NOT configured as conflict groups, though the
+# mechanism exists for packs that want it. Comparing the golden home, paid and worked
+# facility collapses somebody who legitimately works at two sites into a single value
+# per attribute, and then reports the float as a conflict. Those two findings are
+# raised per person-week instead, where the unit of work makes the comparison real.
+
+# Attributes where two sources disagreeing on the same field is itself the finding.
+conflict_within:
+  credential_expires_on: HR_LICENSE_EXPIRY_STALE

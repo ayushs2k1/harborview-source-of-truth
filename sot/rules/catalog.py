@@ -733,6 +733,7 @@ CROSS_SOURCE_RULES = [
         "verification service says {service_date}. The service is treated as authoritative.",
         "Update the roster from the verification service.",
         OWN.HR,
+        implemented=True,
     ),
     _rule(
         "DUPLICATE_PAY_PERIOD",
@@ -1205,8 +1206,9 @@ DOMAIN_RULES = [
         "P1",
         "Below hours-per-resident-day minimums (only when census is provided)",
         "Below the staffing minimum",
-        "{facility} on {work_date}: {bucket} staffing is {actual:.2f} hours per resident "
-        "against a {minimum} minimum, with {residents} residents.",
+        "{facility} is below the {bucket} staffing minimum on {days} day(s). The worst is "
+        "{work_date}, at {actual:.2f} hours per resident against a {minimum} minimum with "
+        "{residents} residents.",
         "Review cover for that day. Compliance is assessed quarterly against census.",
         OWN.ADMINISTRATOR,
         params_from_pack=("hprd_minimums",),

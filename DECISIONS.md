@@ -229,3 +229,67 @@ principle the spec already applies to sources that cover different periods.
 A missed link becomes a visible flag that a human resolves in seconds. A wrong link
 quietly pays the wrong person and is never noticed. So the bands are set to refuse
 rather than guess, and the measured target is precision.
+
+## A golden record is a view, not a merge
+
+The ledger keeps every value every source gave us, with the cell it came from and the
+date that source vouches for. Survivorship decides only which one is *displayed*: the
+losing claims stay queryable beside the winner, and the winner records which rule
+picked it. That is what lets a person's page show "HR says this, the verification
+service says that" instead of quietly siding with one of them.
+
+Tie-breaks run in order after source authority: the later observation, then the more
+complete value, then a stable hash. A credential verified last week is better evidence
+than the same field copied into HR two years ago, and that is only decidable because
+each claim carries its own date.
+
+## Conflicts are compared at the unit of work, not per person
+
+Facility and role disagreements are *not* configured as cross-attribute conflicts,
+though the mechanism exists for packs that want it. Comparing a person's golden home,
+paid and worked facility collapses somebody who legitimately works at two sites into a
+single value per attribute, and then reports the float as a conflict. Floats are
+precisely the people whose hours are hardest to attribute, so reporting them as errors
+is worse than useless. Both are compared per person-week instead.
+
+## The person-week is keyed without the role
+
+Payroll and the rota can disagree about what somebody was doing. Splitting the week by
+role would turn that one disagreement into two half-empty weeks and an hours variance
+that is not real. The week is keyed by person, period and site; the disagreement is
+reported as `ROLE_CONFLICT`.
+
+## Unallocated hours get no date
+
+The spec lists `UNALLOCATED` as a tier of the daily hours table and also says never to
+invent days. Both cannot hold for paid hours with no rota day, so they are reported as
+their own figure against the period rather than given a date. Inventing a date to make
+a total balance is the specific thing an audit looks for.
+
+## Worst status wins
+
+A person-week carries exactly one primary status, and the order is: not employed, not
+permitted, paid with nothing rostered, rostered with no pay, hours variance, matched.
+A week that reconciles perfectly is still a problem if the person should not have been
+there, so the compliance questions outrank the arithmetic.
+
+## The break is deducted once per shift, on the day it started
+
+Reported hours exclude meal time whether or not it was paid, but a rota does not say
+when the break was taken. It is deducted once per shift that is long enough, on the
+day the shift began. Splitting it across a night shift's two days would imply a
+precision the source does not have. The assumption is recorded on every figure and
+shown beside the totals.
+
+## An RN on duty for a stretch, not for a total
+
+Coverage is computed from clock intervals and merged, not from daily totals. Two
+nurses working four hours each is eight hours of nursing and may still leave the
+building uncovered for most of the day. Only facility-days the rota actually covers
+are judged: a day nobody sent us a rota for is not a day with no nurse on it.
+
+## Rule coverage is derived from the code
+
+Evaluators register against the codes they can raise, so the list of rules still
+missing is computed rather than maintained. Only rules raised inline while reading a
+file carry a manual marker, because they have nowhere to register.

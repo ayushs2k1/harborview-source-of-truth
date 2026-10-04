@@ -334,7 +334,11 @@ CREATE TABLE IF NOT EXISTS match_person_week (
     direction             VARCHAR,           -- PAID_MORE | PAID_LESS
     explained_by_pto      BOOLEAN NOT NULL DEFAULT FALSE,
     in_both_coverages     BOOLEAN NOT NULL DEFAULT TRUE,
-    PRIMARY KEY (run_id, person_id, period_start, facility_code, role_code)
+    -- Keyed without the role on purpose. Payroll and the rota can disagree about what
+    -- somebody was doing, and splitting the week by role would turn one disagreement
+    -- into two half-empty weeks and a variance that is not real. The disagreement is
+    -- reported as ROLE_CONFLICT instead.
+    PRIMARY KEY (run_id, person_id, period_start, facility_code)
 );
 
 CREATE TABLE IF NOT EXISTS match_person_day (

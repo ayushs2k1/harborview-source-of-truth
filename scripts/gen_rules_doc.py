@@ -29,7 +29,8 @@ CATEGORY_TITLES = {
 
 def render() -> str:
     specs = RULES.all()
-    done = [spec for spec in specs if spec.implemented]
+    live = RULES.implemented_codes()
+    done = [spec for spec in specs if spec.code in live]
     lines = [
         "# Rules",
         "",
@@ -71,7 +72,7 @@ def render() -> str:
             severity = spec.severity.value
             if spec.severity_fn is not None:
                 severity = f"{severity}†"
-            mark = "" if spec.implemented else " *(pending)*"
+            mark = "" if spec.code in live else " *(pending)*"
             lines.append(
                 f"| `{spec.code}`{mark} | {severity} | {spec.priority} | "
                 f"{spec.owner_role.value} | {spec.meaning} |"

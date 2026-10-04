@@ -2,7 +2,7 @@
 
 Generated from the rule registry by `make docs`. Do not edit by hand.
 
-82 rules, 49 with an evaluator so far.
+82 rules, 81 with an evaluator so far.
 
 Severity means: **BLOCKER** a file or page could not be processed, and only that one is affected · **CRITICAL** compliance, safety, or money is at risk · **WARNING** needs human judgement · **INFO** auto-fixed or informational, aggregated so the inbox stays readable.
 
@@ -10,20 +10,11 @@ Severity means: **BLOCKER** a file or page could not be processed, and only that
 
 | Priority | Rules | With an evaluator |
 |---|---|---|
-| P0 | 59 | 37 |
+| P0 | 59 | 38 |
 | P1 | 22 | 12 |
 | P2 | 1 | 0 |
 
-P0 rules still to implement: 22
-
-```
-ACTIVITY_BEFORE_HIRE                COVERAGE_GAP_BETWEEN_SOURCES        CREDENTIAL_EXPIRED                  CREDENTIAL_EXPIRING
-DAILY_HOURS_OVER_CAP                FACILITY_CONFLICT                   HOURS_EXCESSIVE_WEEK                HOURS_VARIANCE
-HR_LICENSE_EXPIRY_STALE             LICENSED_ROLE_NO_CREDENTIAL         OVERLAPPING_SHIFTS                  PAID_NOT_SCHEDULED
-PAYROLL_PERIOD_INVALID              PBJ_TRACEABILITY_VARIANCE           PBJ_UNALLOCATED_HOURS               RN_8H_COVERAGE_GAP
-ROLE_CONFLICT                       ROLE_EXCEEDS_LICENSE                SCHEDULED_AFTER_EXPIRY              SCHEDULED_NOT_PAID
-VERIFICATION_STALE                  WORKED_AFTER_EXPIRY
-```
+P0 rules still to implement: 0
 
 ## File and structure
 
@@ -51,7 +42,7 @@ VERIFICATION_STALE                  WORKED_AFTER_EXPIRY
 | `CODE_UNKNOWN_ROLE` | WARNING | P0 | DATA_STEWARD | Role code not in the crosswalk |
 | `DATE_IMPOSSIBLE` | WARNING | P0 | DATA_STEWARD | Date doesn't exist |
 | `DATE_UNPARSEABLE` | WARNING | P0 | DATA_STEWARD | Date couldn't be read |
-| `HOURS_EXCESSIVE_WEEK` *(pending)* | WARNING† | P0 | PAYROLL | Implausible weekly hours |
+| `HOURS_EXCESSIVE_WEEK` | WARNING† | P0 | PAYROLL | Implausible weekly hours |
 | `HOURS_NEGATIVE` | WARNING | P0 | PAYROLL | Negative hours; possibly a reversal |
 | `HOURS_UNPARSEABLE` | WARNING | P0 | PAYROLL | Hours couldn't be read |
 | `PHONE_INVALID` | WARNING | P0 | HR | Phone number invalid |
@@ -92,17 +83,17 @@ VERIFICATION_STALE                  WORKED_AFTER_EXPIRY
 | Code | Severity | Pri | Owner | Meaning |
 |---|---|---|---|---|
 | `DUPLICATE_PAY_PERIOD` | CRITICAL | P0 | PAYROLL | Possible double pay |
-| `LICENSED_ROLE_NO_CREDENTIAL` *(pending)* | CRITICAL | P0 | HR | Licensed role with no credential |
-| `OVERLAPPING_SHIFTS` *(pending)* | CRITICAL | P0 | DON | Same person in two places at once |
-| `ROLE_EXCEEDS_LICENSE` *(pending)* | CRITICAL | P0 | DON | Any role claim is above what the credential allows: scope of practice, and the wrong PBJ code |
-| `FACILITY_CONFLICT` *(pending)* | WARNING | P0 | DATA_STEWARD | Systems disagree on facility; PBJ hours follow where the work happened |
-| `HOURS_VARIANCE` *(pending)* | WARNING† | P0 | PAYROLL | Paid and scheduled hours differ beyond tolerance |
-| `HR_LICENSE_EXPIRY_STALE` *(pending)* | WARNING | P0 | HR | HR's copy of the expiry disagrees with the license service |
-| `PAID_NOT_SCHEDULED` *(pending)* | WARNING | P0 | PAYROLL | Paid hours with no scheduled shifts |
-| `PAYROLL_PERIOD_INVALID` *(pending)* | WARNING | P0 | PAYROLL | Period isn't 7 days, doesn't start on the pack's week start, or ends before it starts |
-| `ROLE_CONFLICT` *(pending)* | WARNING | P0 | HR | Systems disagree on role |
-| `SCHEDULED_NOT_PAID` *(pending)* | WARNING | P0 | PAYROLL | Scheduled shifts with no pay |
-| `COVERAGE_GAP_BETWEEN_SOURCES` *(pending)* | INFO | P0 | ADMINISTRATOR | Sources cover different periods |
+| `LICENSED_ROLE_NO_CREDENTIAL` | CRITICAL | P0 | HR | Licensed role with no credential |
+| `OVERLAPPING_SHIFTS` | CRITICAL | P0 | DON | Same person in two places at once |
+| `ROLE_EXCEEDS_LICENSE` | CRITICAL | P0 | DON | Any role claim is above what the credential allows: scope of practice, and the wrong PBJ code |
+| `FACILITY_CONFLICT` | WARNING | P0 | DATA_STEWARD | Systems disagree on facility; PBJ hours follow where the work happened |
+| `HOURS_VARIANCE` | WARNING† | P0 | PAYROLL | Paid and scheduled hours differ beyond tolerance |
+| `HR_LICENSE_EXPIRY_STALE` | WARNING | P0 | HR | HR's copy of the expiry disagrees with the license service |
+| `PAID_NOT_SCHEDULED` | WARNING | P0 | PAYROLL | Paid hours with no scheduled shifts |
+| `PAYROLL_PERIOD_INVALID` | WARNING | P0 | PAYROLL | Period isn't 7 days, doesn't start on the pack's week start, or ends before it starts |
+| `ROLE_CONFLICT` | WARNING | P0 | HR | Systems disagree on role |
+| `SCHEDULED_NOT_PAID` | WARNING | P0 | PAYROLL | Scheduled shifts with no pay |
+| `COVERAGE_GAP_BETWEEN_SOURCES` | INFO | P0 | ADMINISTRATOR | Sources cover different periods |
 
 † Severity depends on context:
 
@@ -112,19 +103,19 @@ VERIFICATION_STALE                  WORKED_AFTER_EXPIRY
 
 | Code | Severity | Pri | Owner | Meaning |
 |---|---|---|---|---|
-| `ACTIVITY_BEFORE_HIRE` *(pending)* | CRITICAL | P0 | HR | Paid or scheduled before the hire date |
-| `DAILY_HOURS_OVER_CAP` *(pending)* | CRITICAL | P0 | ADMINISTRATOR | Over the daily cap; PBJ would reject it |
-| `SCHEDULED_AFTER_EXPIRY` *(pending)* | CRITICAL | P0 | DON | Forecast: scheduled after expiry |
-| `WORKED_AFTER_EXPIRY` *(pending)* | CRITICAL | P0 | DON | Worked after the credential expired, judged as of the shift date |
-| `CREDENTIAL_EXPIRED` *(pending)* | WARNING† | P0 | HR | Credential already expired |
-| `CREDENTIAL_EXPIRING` *(pending)* | WARNING† | P0 | HR | Expiry approaching |
-| `HIRE_DATE_IN_FUTURE` *(pending)* | WARNING | P1 | HR | Hire date is in the future |
-| `LONG_DAY` *(pending)* | WARNING | P1 | DON | Day longer than the fatigue limit |
-| `VERIFICATION_STALE` *(pending)* | WARNING | P0 | HR | last_verified older than verification_max_age_days |
-| `VERIFIED_DATE_IN_FUTURE` *(pending)* | WARNING | P1 | DATA_STEWARD | Verification date is in the future |
+| `ACTIVITY_BEFORE_HIRE` | CRITICAL | P0 | HR | Paid or scheduled before the hire date |
+| `DAILY_HOURS_OVER_CAP` | CRITICAL | P0 | ADMINISTRATOR | Over the daily cap; PBJ would reject it |
+| `SCHEDULED_AFTER_EXPIRY` | CRITICAL | P0 | DON | Forecast: scheduled after expiry |
+| `WORKED_AFTER_EXPIRY` | CRITICAL | P0 | DON | Worked after the credential expired, judged as of the shift date |
+| `CREDENTIAL_EXPIRED` | WARNING† | P0 | HR | Credential already expired |
+| `CREDENTIAL_EXPIRING` | WARNING† | P0 | HR | Expiry approaching |
+| `HIRE_DATE_IN_FUTURE` | WARNING | P1 | HR | Hire date is in the future |
+| `LONG_DAY` | WARNING | P1 | DON | Day longer than the fatigue limit |
+| `VERIFICATION_STALE` | WARNING | P0 | HR | last_verified older than verification_max_age_days |
+| `VERIFIED_DATE_IN_FUTURE` | WARNING | P1 | DATA_STEWARD | Verification date is in the future |
 | `WEEKDAY_DATE_MISMATCH` | WARNING | P0 | DON | Schedule weekday doesn't match its date |
-| `CONSECUTIVE_DAYS` *(pending)* | INFO | P1 | DON | Too many days in a row |
-| `SHORT_REST` *(pending)* | INFO | P1 | DON | Too little rest between shifts |
+| `CONSECUTIVE_DAYS` | INFO | P1 | DON | Too many days in a row |
+| `SHORT_REST` | INFO | P1 | DON | Too little rest between shifts |
 
 † Severity depends on context:
 
@@ -156,14 +147,14 @@ VERIFICATION_STALE                  WORKED_AFTER_EXPIRY
 
 | Code | Severity | Pri | Owner | Meaning |
 |---|---|---|---|---|
-| `HPRD_BELOW_MINIMUM` *(pending)* | CRITICAL | P1 | ADMINISTRATOR | Below hours-per-resident-day minimums (only when census is provided) |
-| `RN_8H_COVERAGE_GAP` *(pending)* | CRITICAL | P0 | DON | A facility-day inside schedule coverage without RN coverage for 8 consecutive hours |
-| `CNA_HOURS_EXCLUDED_UNCERTIFIED` *(pending)* | WARNING | P1 | ADMINISTRATOR | CNA hours on dates without valid certification are excluded from the CNA bucket |
-| `CNA_RECERT_EVIDENCE_INSUFFICIENT` *(pending)* | WARNING | P1 | HR | Fewer than the required paid aide hours inside the recert window in the available payroll |
-| `PBJ_TRACEABILITY_VARIANCE` *(pending)* | WARNING | P0 | ADMINISTRATOR | Per facility-period, schedule-derived worked hours and paid hours (minus PTO) differ by more than the configured percentage |
-| `PBJ_UNALLOCATED_HOURS` *(pending)* | WARNING | P0 | ADMINISTRATOR | Paid hours with no schedule day; never invent days |
-| `ZERO_RN_DAYS_QUARTER` *(pending)* | WARNING† | P1 | ADMINISTRATOR | Count of zero-RN days per facility per quarter |
-| `CNA_EXPIRY_NOT_MONTH_END` *(pending)* | INFO | P1 | HR | Likely data-entry error; NY CNA renewals fall on month-ends |
+| `HPRD_BELOW_MINIMUM` | CRITICAL | P1 | ADMINISTRATOR | Below hours-per-resident-day minimums (only when census is provided) |
+| `RN_8H_COVERAGE_GAP` | CRITICAL | P0 | DON | A facility-day inside schedule coverage without RN coverage for 8 consecutive hours |
+| `CNA_HOURS_EXCLUDED_UNCERTIFIED` | WARNING | P1 | ADMINISTRATOR | CNA hours on dates without valid certification are excluded from the CNA bucket |
+| `CNA_RECERT_EVIDENCE_INSUFFICIENT` | WARNING | P1 | HR | Fewer than the required paid aide hours inside the recert window in the available payroll |
+| `PBJ_TRACEABILITY_VARIANCE` | WARNING | P0 | ADMINISTRATOR | Per facility-period, schedule-derived worked hours and paid hours (minus PTO) differ by more than the configured percentage |
+| `PBJ_UNALLOCATED_HOURS` | WARNING | P0 | ADMINISTRATOR | Paid hours with no schedule day; never invent days |
+| `ZERO_RN_DAYS_QUARTER` | WARNING† | P1 | ADMINISTRATOR | Count of zero-RN days per facility per quarter |
+| `CNA_EXPIRY_NOT_MONTH_END` | INFO | P1 | HR | Likely data-entry error; NY CNA renewals fall on month-ends |
 
 † Severity depends on context:
 
@@ -247,7 +238,7 @@ What each rule says, with the values filled in at the time.
 
 **`HPRD_BELOW_MINIMUM`** — Below the staffing minimum
 
-> {facility} on {work_date}: {bucket} staffing is {actual:.2f} hours per resident against a {minimum} minimum, with {residents} residents.
+> {facility} is below the {bucket} staffing minimum on {days} day(s). The worst is {work_date}, at {actual:.2f} hours per resident against a {minimum} minimum with {residents} residents.
 
 *Action:* Review cover for that day. Compliance is assessed quarterly against census.
  · *Configured by:* `hprd_minimums`

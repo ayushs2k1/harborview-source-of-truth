@@ -4,6 +4,50 @@ Updated after each build phase. Format: done / next / risks.
 
 ---
 
+## Phase 5 — Ledger, golden records, the four-way match, and the rules ✅
+
+**Done**
+
+- **The claims ledger.** Every value every source gave us, stored with the file, row and column it came from and the date the source vouches for it. 227 claims from the clean set, nothing merged on the way in.
+- **Survivorship** from `authority.yaml`: source order, then the later observation, then completeness, then a stable hash. The winning claim records *which step decided it*, and the losing claims stay beside it.
+- **The four-way match** at two grains. The person-week is where money reconciles; the person-day is where compliance lives. Coverage is established before anything is compared.
+- **The staffing view**: midnight split, meal deduction, and a tier on every figure saying how far it is corroborated.
+- **Thirty-one rule evaluators**, registered against the codes they raise.
+- **81 of 82 rules now have evaluators**, up from 49. **Every P0 rule is live**; only `VOLUME_DROP` (P2, needs run history) remains.
+- **666 tests passing** (103 new), ruff clean.
+
+**Both exit criteria met**
+
+- The clean set at the pinned as-of date raises **nothing above INFO**, and every one of its eleven person-weeks is `MATCHED`.
+- The messy set raises **30 findings above INFO** — 14 critical, 16 warnings — each with the right severity, and each traceable to a planted problem. Tested individually, by code and by severity.
+
+**Rule coverage is now derived, not declared**
+
+Evaluators register against the codes they emit, so "which P0 rules are still missing" is computed from the code rather than from a flag somebody has to remember to flip. Only rules raised inline while reading a file still carry a manual marker, because they have nowhere to register.
+
+**Three findings worth recording**
+
+- **A legitimate float was reported as a facility conflict**, which broke the clean set. Comparing the golden home, paid and worked facility collapses somebody who works at two sites into one value per attribute and then reports the difference as a disagreement — exactly backwards, since floats are the people whose hours are hardest to attribute. Facility and role conflicts are now compared **per person-week**, where the unit of work makes the comparison real.
+- **HR's own copy of a credential expiry was never claimed**, so the disagreement the messy set plants between HR and the verification service could not be detected. It was the one planted problem the engine was blind to.
+- **Hours-per-resident fired 44 times on one week.** A facility below the minimum for seven days is one problem with seven dates; it now reports once per site and staffing category, naming the worst day and the count. Six flags instead of forty-four.
+
+**Two deliberate departures from the spec, both in `DECISIONS.md`**
+
+- The person-week is keyed **without the role**. Payroll and the rota can disagree about what somebody was doing, and splitting the week by role would turn one disagreement into two half-empty weeks and a variance that is not real.
+- `UNALLOCATED` is a summary tier, not a row in the daily table. The spec lists it as a tier of `daily_hours`, but it also says never to invent days — and those cannot both be true for hours with no date. They are reported as their own figure.
+
+**Next — phase 6: views, API, and CLI**
+
+Expiration radar, referral readiness, the facility and quarter summaries, the full API surface with SSE, and the remaining CLI exports.
+
+**Risks**
+
+- *Closed (R6):* carried since phase 1. The clean set raises nothing above INFO with all the domain rules live, and `make verify-clean` holds it there.
+- *New:* the suite now takes 100 seconds, most of it full pipeline runs. Fine for now; if it reaches the point of not being run, the fixture scope is the thing to widen.
+- *New:* every regulatory threshold is now load-bearing rather than decorative. They sit in `pack.yaml` with their sources cited and are editable in the UI, which is the defence if a judge disputes one.
+
+---
+
 ## Phase 4 — Identity resolution ✅
 
 **Done**

@@ -69,6 +69,11 @@ class IngestResult:
     quarantined_count: int = 0
     segment_count: int = 0
     resolution: Any = None
+    golden: Any = None
+    match: Any = None
+    staffing: Any = None
+    credentials: list[Any] = field(default_factory=list)
+    pay_lines: list[Any] = field(default_factory=list)
     schedules: list[Any] = field(default_factory=list)
     context: RunContext | None = None
 
@@ -140,6 +145,7 @@ def ingest_paths(
     _read_schedules(context, db, landed, result, pack)
     _resolve_identities(context, db, result, pack)
     _report_missing_sources(context, result, pack)
+    _build_ledger_and_match(context, db, result, pack)
 
     result.status = context.finish()
     return result
@@ -995,3 +1001,179 @@ def _report_missing_sources(context: RunContext, result: IngestResult, pack: Pac
             key_parts=(role,),
             node_id="intake",
         )
+
+
+# ---------------------------------------------------------------------------
+# Ledger, match, and rules
+# ---------------------------------------------------------------------------
+
+
+def _census_from(result: IngestResult) -> dict[tuple[str, date], int]:
+    """Resident counts by facility and day, where a census was supplied."""
+    import json
+
+    census: dict[tuple[str, date], int] = {}
+    for record in _records_for_role(result, "census"):
+        payload = json.loads(record.get("payload_json") or "{}")
+        facility = str(payload.get("facility") or payload.get("facility_code") or "")
+        when = str(payload.get("date") or "")
+        residents = payload.get("residents")
+        if not facility or not when or residents in (None, ""):
+            continue
+        try:
+            census[(facility, date.fromisoformat(when))] = int(float(residents))
+        except ValueError:
+            continue
+    return census
+
+
+def _build_ledger_and_match(
+    context: RunContext, db: Database, result: IngestResult, pack: Pack
+) -> None:
+    """Claims, golden records, the four-way match, the staffing view, and the rules."""
+    from sot.ledger.authority import authority_for_pack
+    from sot.ledger.claims import claims_from_records, claims_from_segments
+    from sot.ledger.golden import (
+        build_credentials,
+        build_pay_lines,
+        conflict_findings,
+        credential_holders,
+        survive,
+    )
+    from sot.match.fourway import run_match
+    from sot.rules.engine import RuleContext, load_rule_modules, run_rules
+    from sot.views.staffing import build_daily_hours
+
+    resolution = result.resolution
+    if resolution is None:
+        return
+
+    roster = _records_for_role(result, "roster")
+    payroll = _records_for_role(result, "payroll")
+    credential_records = _records_for_role(result, "credentials")
+    segments = _resolved_segments(db, context.run_id)
+    person_by_record = {link.record_id: link.person_id for link in resolution.links}
+    for person in resolution.persons:
+        if getattr(person, "record_id", ""):
+            person_by_record.setdefault(person.record_id, person.person_id)
+
+    authority = authority_for_pack(pack)
+    display_names = {person.person_id: person.display_name for person in resolution.persons}
+
+    with context.node("ledger", "Claims ledger", "ledger") as node:
+        claims = [
+            *claims_from_records(roster, source_role="roster", person_by_record=person_by_record),
+            *claims_from_records(payroll, source_role="payroll", person_by_record=person_by_record),
+            *claims_from_records(
+                credential_records, source_role="credentials", person_by_record=person_by_record
+            ),
+            *claims_from_segments(segments),
+        ]
+        node.rows_in = len(roster) + len(payroll) + len(credential_records) + len(segments)
+        node.rows_out = len(claims)
+
+        golden = survive(claims, authority)
+        holders = credential_holders([*roster, *credential_records], person_by_record)
+        credentials = build_credentials(golden, holders, claims)
+        pay_lines = build_pay_lines(payroll, person_by_record)
+
+        result.golden = golden
+        result.credentials = credentials
+        result.pay_lines = pay_lines
+
+        db.insert_rows("claims", [claim.as_row(context.run_id) for claim in claims])
+        db.insert_rows(
+            "golden_attributes", [value.as_row(context.run_id) for value in golden.values]
+        )
+        db.insert_rows("credentials", [item.as_row(context.run_id) for item in credentials])
+        db.insert_rows("pay_lines", [line.as_row(context.run_id) for line in pay_lines])
+
+        for finding in conflict_findings(
+            golden, authority, display_names=display_names, credential_holders=holders
+        ):
+            _raise_finding(context, finding, "ledger")
+
+    with context.node("match", "Four-way match", "match") as node:
+        match = run_match(
+            persons=resolution.persons,
+            pay_lines=result.pay_lines,
+            segments=segments,
+            credentials=result.credentials,
+            golden=result.golden,
+            required_credential=pack.setting("required_credential", {}) or {},
+            week_start=str(pack.setting("week_start", "monday")),
+            tolerance=float(pack.setting("hours_tolerance", 0.25) or 0.25),
+        )
+        result.match = match
+        node.rows_in = len(result.pay_lines) + len(segments)
+        node.rows_out = len(match.weeks) + len(match.days)
+        db.insert_rows("match_person_week", [week.as_row(context.run_id) for week in match.weeks])
+        db.insert_rows("match_person_day", [day.as_row(context.run_id) for day in match.days])
+
+    with context.node("staffing", "Staffing hours", "view") as node:
+        pbj_codes = {}
+        roles = pack.crosswalk("roles")
+        if roles is not None:
+            pbj_codes = {
+                entry.code.upper(): entry.extra.get("pbj_code", "") for entry in roles.entries
+            }
+        staffing = build_daily_hours(
+            segments=segments,
+            match=result.match,
+            pack=pack,
+            display_names=display_names,
+            pbj_codes=pbj_codes,
+        )
+        result.staffing = staffing
+        node.rows_in = len(segments)
+        node.rows_out = len(staffing.rows)
+        db.insert_rows("daily_hours", [row.as_row(context.run_id) for row in staffing.rows])
+
+    with context.node("rules", "Rules", "rules") as node:
+        load_rule_modules()
+        rule_context = RuleContext(
+            as_of=context.as_of,
+            pack=pack,
+            authority=authority,
+            persons=resolution.persons,
+            golden=result.golden,
+            claims=claims,
+            credentials=result.credentials,
+            pay_lines=result.pay_lines,
+            segments=segments,
+            match=result.match,
+            daily_hours=result.staffing,
+            census=_census_from(result),
+        )
+        findings = run_rules(rule_context)
+        node.rows_in = len(result.match.weeks) + len(result.match.days)
+        node.rows_out = len(findings)
+        for finding in findings:
+            _raise_finding(context, finding, "rules")
+
+
+def _resolved_segments(db: Database, run_id: str) -> list[dict[str, Any]]:
+    """Shift segments with their resolved person, straight from the database."""
+    return db.query("SELECT * FROM shift_segments WHERE run_id = ? ORDER BY segment_id", [run_id])
+
+
+def _raise_finding(context: RunContext, finding: Any, node_id: str) -> None:
+    evidence = []
+    if finding.row_index or finding.page or finding.raw_value:
+        evidence = [
+            Evidence(
+                row_index=finding.row_index,
+                page=finding.page,
+                column_name=finding.column,
+                raw_value=finding.raw_value,
+                bbox=finding.bbox,
+            )
+        ]
+    context.flags.raise_flag(
+        finding.code,
+        dict(finding.params),
+        entities=list(finding.entities),
+        evidence=evidence,
+        key_parts=finding.key_parts or (finding.code,),
+        node_id=node_id,
+    )

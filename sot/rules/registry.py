@@ -105,10 +105,26 @@ class RuleRegistry:
     def by_priority(self, priority: str) -> list[RuleSpec]:
         return [spec for spec in self.all() if spec.priority == priority]
 
+    def implemented_codes(self) -> set[str]:
+        """Codes something can actually raise.
+
+        Two routes. Rules evaluated over the finished tables register themselves
+        against the codes they emit, so coverage is derived rather than declared.
+        Rules raised inline while reading a file have nowhere to register, so those
+        carry the flag on the spec itself.
+        """
+        from sot.rules.engine import load_rule_modules, registered_codes
+
+        load_rule_modules()
+        return {spec.code for spec in self._rules.values() if spec.implemented} | (
+            registered_codes() & set(self._rules)
+        )
+
     def unimplemented(self, priority: str | None = None) -> list[str]:
-        """Codes that exist as metadata but have no evaluator yet."""
+        """Codes that exist as metadata but nothing can raise yet."""
+        live = self.implemented_codes()
         return sorted(
             spec.code
             for spec in self._rules.values()
-            if not spec.implemented and (priority is None or spec.priority == priority)
+            if spec.code not in live and (priority is None or spec.priority == priority)
         )
